@@ -1,0 +1,11 @@
+{
+  "name": "garage",
+  "version": "1.0.0",
+  "description": "Open Garage door",
+  "main": "garage.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Gerry Weirich",
+  "license": "UNLICENSED"
+}
