@@ -1,4 +1,5 @@
 // garage.js
+var pin=38
 var express=require('express')
 var nconf=require('nconf')
 var hash=require('crypto-js/sha256')
@@ -6,7 +7,7 @@ var rpio=require('rpio')
 var salt="um hackern mit rainbow tables die Suppe zu versalzen"
 nconf.env().argv().file('users.json')
 var app=express()
-rpio.open(38,rpio.OUTPUT,rpio.HIGH)
+rpio.open(pin,rpio.OUTPUT,rpio.HIGH)
 
 app.get("/garage/:user/:password",function(request,response){
   var user=JSON.stringify(hash(request.params['user']+salt))
@@ -14,9 +15,9 @@ app.get("/garage/:user/:password",function(request,response){
   var valid=nconf.get(user)
   if(valid && valid == password){
     console.log("Das Garagentor tut etwas!")
-    rpio.write(38,rpio.HIGH)
+    rpio.write(pin,rpio.HIGH)
     rpio.sleep(1)
-    rpio.write(38,rpio.LOW)
+    rpio.write(pin,rpio.LOW)
     response.send("Auftrag ausgeführt, "+request.params['user'])
   }else{
     response.send("Wer bist denn du???")
