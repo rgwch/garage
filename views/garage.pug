@@ -1,0 +1,9 @@
+extends layout.pug
+
+block content
+  h1 Garage
+  form(method="get" action="/garage")
+    input(type="text" name="username")
+    input(type="password" name="password")
+    input(type="submit" value="ok")
+
