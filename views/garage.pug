@@ -1,9 +1,19 @@
 extends layout.pug
 
 block content
-  h1 Garage
-  form(method="get" action="/garage")
-    input(type="text" name="username")
-    input(type="password" name="password")
-    input(type="submit" value="ok")
+  .container
+    .row
+      h1.col.s12 Garage
+
+      form.col.s12(method="get" action="/garage")
+        .row
+          .col.s12
+            .input-field.col.s12.m6
+              i.material-icons.prefix account_circle
+              input(type="text" name="username" placeholder="Username" id="uname")
+            .input-field.col.s12.m6
+              i.material-icons.prefix vpn_key
+              input(type="password" name="password" placeholder="Passwort")
+            button.btn.waves-effect.waves-light.col.s12(type="submit" name="action") Senden
+              i.material-icons.right send
 

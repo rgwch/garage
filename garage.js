@@ -2,7 +2,7 @@
 // http://blog.mgechev.com/2014/02/19/create-https-tls-ssl-application-with-express-nodejs/
 
 var pin=38            // Pin (not GPIO #) to handle
-var realpi=true      // Set to true if running really on the Raspberry Pi (otherwise GPIO access is simulated)
+var realpi=false      // Set to true if running really on the Raspberry Pi (otherwise GPIO access is simulated)
 var fs=require('fs')
 var https=require('https')
 var express=require('express')
