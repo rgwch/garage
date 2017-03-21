@@ -12,6 +12,7 @@ var path=require('path')
 var salt="um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 nconf.env().argv().file('users.json')
 var app=express()
+app.set('view-cache', true)
 
 https.createServer({
   key: fs.readFileSync('key.pem'),
