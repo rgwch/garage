@@ -13,7 +13,7 @@ var salt="um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 nconf.env().argv().file('users.json')
 var app=express()
 app.set('view-cache', true)
-var pfio=requre('piface')
+var pfio=require('piface')
 pfio.init()
 
 https.createServer({
@@ -51,10 +51,10 @@ app.get("/garage",function(request,response){
 	console.log("pfio opens")
 	setTimeout(function(){
 		console.log("pfio closes")
-		pfio.digital_write(0,0)	
+		pfio.digital_write(0,0)
 	},10000);
-				
-    }
+
+
     response.render("answer", {message: "Auftrag ausgeführt, "+request.query.username})
   }else{
     response.render("answer",{message: "Wer bist denn du???"})
@@ -68,4 +68,3 @@ app.get("/adduser/:username/:password",function(req,resp){
   nconf.save()
   resp.render("answer",{message: "Ok"})
 })
-
