@@ -47,12 +47,12 @@ app.get("/garage",function(request,response){
     //rpio.write(pin,rpio.HIGH)
     //rpio.sleep(10)
     //rpio.write(pin,rpio.LOW)
-	pfio.digital_write(0,1)
-	console.log("pfio opens")
+	pfio.digital_write(1,1)
+//	console.log("pfio opens")
 	setTimeout(function(){
-		console.log("pfio closes")
-		pfio.digital_write(0,0)
-	},10000);
+//		console.log("pfio closes")
+		pfio.digital_write(1,0)
+	},1500);
 
 
     response.render("answer", {message: "Auftrag ausgeführt, "+request.query.username})
@@ -61,6 +61,7 @@ app.get("/garage",function(request,response){
   }
 })
 
+/*
 app.get("/adduser/:username/:password",function(req,resp){
   var user=JSON.stringify(hash(req.params['username']+salt))
   var password=JSON.stringify(hash(req.params['password']+salt))
@@ -68,3 +69,5 @@ app.get("/adduser/:username/:password",function(req,resp){
   nconf.save()
   resp.render("answer",{message: "Ok"})
 })
+*/
+
