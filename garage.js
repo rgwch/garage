@@ -13,6 +13,8 @@ var salt="um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 nconf.env().argv().file('users.json')
 var app=express()
 app.set('view-cache', true)
+var pfio=requre('piface')
+pfio.init()
 
 https.createServer({
   key: fs.readFileSync('key.pem'),
@@ -42,9 +44,17 @@ app.get("/garage",function(request,response){
   var password=JSON.stringify(hash(request.query.password+salt))
   var valid=nconf.get(user)
   if(valid && valid == password){
-    rpio.write(pin,rpio.HIGH)
-    rpio.sleep(1)
-    rpio.write(pin,rpio.LOW)
+    //rpio.write(pin,rpio.HIGH)
+    //rpio.sleep(10)
+    //rpio.write(pin,rpio.LOW)
+	pfio.digital_write(0,1)
+	console.log("pfio opens")
+	setTimeout(function(){
+		console.log("pfio closes")
+		pfio.digital_write(0,0)	
+	},10000);
+				
+    }
     response.render("answer", {message: "Auftrag ausgeführt, "+request.query.username})
   }else{
     response.render("answer",{message: "Wer bist denn du???"})
