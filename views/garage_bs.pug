@@ -1,0 +1,12 @@
+extends bootstrap.pug
+
+block content
+  .container(style="font-size:48px")
+    .row
+      h1 Garage
+
+      form(method="get" action="/garage")
+        input.form-control(type="text" name="username" placeholder="Username" id="uname")
+        input.form-control(type="password" name="password" placeholder="Passwort")
+        button.btn.btn-default(type="submit" name="action" value="ok") ok
+

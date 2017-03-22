@@ -45,9 +45,9 @@ app.get("/garage",function(request,response){
     rpio.write(pin,rpio.HIGH)
     rpio.sleep(1)
     rpio.write(pin,rpio.LOW)
-    response.send("Auftrag ausgeführt, "+request.query.username)
+    response.render("answer", {message: "Auftrag ausgeführt, "+request.query.username})
   }else{
-    response.send("Wer bist denn du???")
+    response.render("answer",{message: "Wer bist denn du???"})
   }
 })
 
@@ -56,6 +56,6 @@ app.get("/adduser/:username/:password",function(req,resp){
   var password=JSON.stringify(hash(req.params['password']+salt))
   nconf.set(user,password)
   nconf.save()
-  resp.send("Ok")
+  resp.render("answer",{message: "Ok"})
 })
 
