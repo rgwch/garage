@@ -1,33 +1,34 @@
 // garage.js
 // http://blog.mgechev.com/2014/02/19/create-https-tls-ssl-application-with-express-nodejs/
 
-var pin=38            // Pin (not GPIO #) to handle
-var realpi=false      // Set to true if running really on the Raspberry Pi (otherwise GPIO access is simulated)
-var fs=require('fs')
-var https=require('https')
-var express=require('express')
-var nconf=require('nconf')
-var hash=require('crypto-js/sha256')
-var path=require('path')
-var salt="um Hackern mit 'rainbow tables' die Suppe zu versalzen"
-nconf.env().argv().file('users.json')
-var app=express()
+const pin = 1
+const time_to_push = 1500
+const realpi = false      // Set to true if running really on the Raspberry Pi (otherwise pfio access is simulated)
+const fs = require('fs')
+const https = require('https')
+const express = require('express')
+const nconf = require('nconf')
+const hash = require('crypto-js/sha256')
+const path = require('path')
+const bodyParser = require('body-parser');
+const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
+nconf.file('users.json')
+const app = express()
+let pfio
 app.set('view-cache', true)
-var pfio=require('piface')
-pfio.init()
 
 https.createServer({
   key: fs.readFileSync('key.pem'),
   cert: fs.readFileSync('cert.pem')
-},app).listen(2017)
+}, app).listen(2017)
 
-if(realpi) {
-  var rpio = require('rpio')
-  rpio.open(pin, rpio.OUTPUT, rpio.HIGH)
-}else{
-  var rpio={
-    write: function(){},
-    sleep: function(){}
+if (realpi) {
+  pfio = require('piface')
+  pfio.init()
+} else {
+  pfio = {
+    digital_write: function () {
+    },
   }
 }
 
@@ -35,39 +36,36 @@ if(realpi) {
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
-app.get("/",function(request,response){
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: false}));
+
+app.get("/", function (request, response) {
   response.render("garage")
 })
 
-app.get("/garage",function(request,response){
-  var user=JSON.stringify(hash(request.query.username+salt))
-  var password=JSON.stringify(hash(request.query.password+salt))
-  var valid=nconf.get(user)
-  if(valid && valid == password){
-    //rpio.write(pin,rpio.HIGH)
-    //rpio.sleep(10)
-    //rpio.write(pin,rpio.LOW)
-	pfio.digital_write(1,1)
-//	console.log("pfio opens")
-	setTimeout(function(){
-//		console.log("pfio closes")
-		pfio.digital_write(1,0)
-	},1500);
+app.post("/garage", function (request, response) {
+  let user = request.body.username
+  let password = JSON.stringify(hash(request.body.password + salt))
+  let valid = nconf.get(user)
+  if (valid && valid === password) {
+    pfio.digital_write(pin, 1)
+    setTimeout(function () {
+      pfio.digital_write(pin, 0)
+    }, time_to_push);
 
-
-    response.render("answer", {message: "Auftrag ausgeführt, "+request.query.username})
-  }else{
-    response.render("answer",{message: "Wer bist denn du???"})
+    response.render("answer", {message: "Auftrag ausgeführt, " + request.body.username})
+  } else {
+    response.render("answer", {message: "Wer bist denn du???"})
   }
 })
 
-/*
-app.get("/adduser/:username/:password",function(req,resp){
-  var user=JSON.stringify(hash(req.params['username']+salt))
-  var password=JSON.stringify(hash(req.params['password']+salt))
-  nconf.set(user,password)
+
+app.get("/adduser/:username/:password", function (req, resp) {
+  var user = req.params.username
+  var password = JSON.stringify(hash(req.params['password'] + salt))
+  nconf.set(user, password)
   nconf.save()
-  resp.render("answer",{message: "Ok"})
+  resp.render("answer", {message: "Ok"})
 })
-*/
+
 
