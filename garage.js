@@ -14,6 +14,7 @@ const bodyParser = require('body-parser');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 nconf.file('users.json')
 const app = express()
+let disabled=false
 let pfio
 app.set('view-cache', true)
 
@@ -43,8 +44,16 @@ app.get("/", function (request, response) {
   response.render("garage")
 })
 
+app.post("/*",function(req,resp,next){
+    if(disabled){
+      resp.render("answer",{message:"Sorry, server is paused"})
+    }else{
+      next()
+    }
+})
+
 app.post("/garage", function (request, response) {
-  let user = request.body.username
+  let user = request.body.username.toLocaleLowerCase()
   let password = JSON.stringify(hash(request.body.password + salt))
   let valid = nconf.get(user)
   if (valid && valid === password) {
@@ -60,12 +69,62 @@ app.post("/garage", function (request, response) {
 })
 
 
-app.get("/adduser/:username/:password", function (req, resp) {
-  var user = req.params.username
-  var password = JSON.stringify(hash(req.params['password'] + salt))
-  nconf.set(user, password)
-  nconf.save()
-  resp.render("answer", {message: "Ok"})
+/**
+ * Add a new user. Master password is required. If no master password exists, it is created
+ */
+app.get("/adduser/:username/:password/:master", function (req, resp) {
+  let master = JSON.stringify(hash(req.params.master + salt))
+  let stored = nconf.get("admin")
+  if (!stored) {
+    nconf.set("admin", master)
+    stored = master
+  }
+  if (stored === master) {
+    var user = req.params.username.toLocaleLowerCase()
+    var password = JSON.stringify(hash(req.params['password'] + salt))
+    nconf.set(user, password)
+    nconf.save()
+    resp.render("answer", {message: "Ok"})
+  } else {
+    resp.render("answer", {message: "Insufficient rights"})
+  }
 })
 
+/**
+ * remove a user. Master password is needed
+ */
+app.get("/remove/:username/:master",function(req,resp){
+  let master = JSON.stringify(hash(req.params.master + salt))
+  let stored = nconf.get("admin")
+  if (!stored) {
+    nconf.set("admin", master)
+    stored = master
+  }
+  if (stored === master) {
+    nconf.set(req.params.username,undefined)
+    nconf.save()
+    resp.render("answer",{message: "ok"})
+  }
+})
 
+app.get("/disable/:master",function(req,resp){
+  let master = JSON.stringify(hash(req.params.master + salt))
+  let stored = nconf.get("admin")
+  if(stored===master) {
+    disabled = true
+    resp.render("answer", {message: "disabled"})
+  }else{
+    resp.render("answer", {message: "Insufficient rights"})
+  }
+})
+
+app.get("/enable/:master",function(req,resp){
+  let master = JSON.stringify(hash(req.params.master + salt))
+  let stored = nconf.get("admin")
+  if(stored===master) {
+    disabled = false
+    resp.render("answer", {message: "enabled"})
+  }else{
+    resp.render("answer", {message: "Insufficient rights"})
+  }
+})
