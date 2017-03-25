@@ -21,6 +21,7 @@ let disabled = false;
 let pfio
 app.set('view-cache', true)
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 https.createServer({
   key: fs.readFileSync('key.pem'),
