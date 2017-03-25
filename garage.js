@@ -1,6 +1,7 @@
 // garage.js
 // http://blog.mgechev.com/2014/02/19/create-https-tls-ssl-application-with-express-nodejs/
 
+"use strict"
 const pin = 1
 const time_to_push = 1500
 const realpi = true      // Set to true if running really on the Raspberry Pi (otherwise pfio access is simulated)
@@ -12,11 +13,14 @@ const hash = require('crypto-js/sha256')
 const path = require('path')
 const bodyParser = require('body-parser');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
+const favicon = require('serve-favicon');
+
 nconf.file('users.json')
 const app = express()
-let disabled=false
+let disabled = false;
 let pfio
 app.set('view-cache', true)
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 
 https.createServer({
   key: fs.readFileSync('key.pem'),
