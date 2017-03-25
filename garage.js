@@ -3,7 +3,7 @@
 
 const pin = 1
 const time_to_push = 1500
-const realpi = false      // Set to true if running really on the Raspberry Pi (otherwise pfio access is simulated)
+const realpi = true      // Set to true if running really on the Raspberry Pi (otherwise pfio access is simulated)
 const fs = require('fs')
 const https = require('https')
 const express = require('express')
