@@ -3,14 +3,14 @@
   "name": "Garage",
   "icons":[
     {
-      "src":"garage-57x57.png",
+      "src":"https://garage.weirich.ch:2017/garage-57x57.png",
       "type":"image/png",
-      "sizes":"57x57"
+      "sizes":"57x47"
     },
     {
-      "src":"garage-114x114.png",
+      "src":"https://garage.weirich.ch:2017/garage-114x114.png",
       "type":"image/png",
-      "sizes":"114x114"
+      "sizes":"114x94"
     }
   ],
   "start_url": "/?launcher=true"
