@@ -11,7 +11,7 @@ const input_pin = 0
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 1500
 // Damit wir das Programm auf einem normalen PC testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi = false
+const realpi = true
 const fs = require('fs')
 const https = require('https')
 const express = require('express')
