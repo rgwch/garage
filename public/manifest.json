@@ -18,6 +18,6 @@
       "sizes":"144x144"
     }
   ],
-  "start_url": "/?launcher=true",
+  "start_url": "https://garage.weirich.ch:2017/?launcher=true",
   "display":"standalone"
 }

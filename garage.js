@@ -1,10 +1,17 @@
-// garage.js
-// http://blog.mgechev.com/2014/02/19/create-https-tls-ssl-application-with-express-nodejs/
+/**
+ *  Garagentor-Fernbedienung mit Raspberry Pi
+ *  (c) 2017 by G. Weirich
+ */
 
 "use strict"
-const pin = 1
+// Pin des piface für den output. pin 1 ist das linke Relais.
+const output_pin = 1
+// pin für den Schalter, der feststellt, ob das Garagentor offen ist
+const input_pin = 0
+// Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 1500
-const realpi = true      // Set to true if running really on the Raspberry Pi (otherwise pfio access is simulated)
+// Damit wir das Programm auf einem normalen PC testen können. Wenn es auf dem echten Pi läuft, true setzen
+const realpi = false
 const fs = require('fs')
 const https = require('https')
 const express = require('express')
@@ -18,23 +25,39 @@ const favicon = require('serve-favicon');
 nconf.file('users.json')
 const app = express()
 let disabled = false;
-let pfio
+
 app.set('view-cache', true)
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+/*
+  HTTPS-Server erstellen, damit Usernamen und Passwörter verschlüsselt übermittelt werden.
+  Als Zertifikat kann man entweder ein self-signed certificate verwenden
+  (wie hier gezeigt: http://blog.mgechev.com/2014/02/19/create-https-tls-ssl-application-with-express-nodejs/)
+
+  Oder man erstellt ein Zertifikat via letsencrypt, mit "sudo certbot certonly --manual" und kopiert
+  "privkey.pem" nach "key.pem" und "fullchain.pem" nach "cert.pem"
+ */
 https.createServer({
   key: fs.readFileSync('key.pem'),
   cert: fs.readFileSync('cert.pem')
 }, app).listen(2017)
 
+// Auf einem echten Pi ist pfio auf das piface (https://www.npmjs.com/package/piface) gesetzt
+// Auf einem anderen PC wird es einfach mit leeren Funktionen simuliert.
+let pfio
 if (realpi) {
   pfio = require('piface')
   pfio.init()
 } else {
+  let pinstate=1
   pfio = {
     digital_write: function () {
     },
+    digital_read: function (pin) {
+      pinstate = pinstate ? 0 : 1
+      return pinstate
+    }
   }
 }
 
@@ -45,26 +68,54 @@ app.set('view engine', 'pug');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
+// Login-Screen anzeigen
 app.get("/", function (request, response) {
   response.render("garage")
 })
 
-app.post("/*",function(req,resp,next){
-    if(disabled){
-      resp.render("answer",{message:"Sorry, server is paused"})
-    }else{
-      next()
-    }
+/*
+ Check ob der Server inaktiv geschaltet ist
+*/
+app.post("/*", function (req, resp, next) {
+  if (disabled) {
+    resp.render("answer", {message: "Sorry, server is paused"})
+  } else {
+    next()
+  }
 })
 
+/*
+ Nach dem Login-Screen: Aktuellen Zustand des Tors anzeigen, wenn Username udn Passwort stimmen
+ */
 app.post("/garage", function (request, response) {
   let user = request.body.username.toLocaleLowerCase()
   let password = JSON.stringify(hash(request.body.password + salt))
   let valid = nconf.get(user)
   if (valid && valid === password) {
-    pfio.digital_write(pin, 1)
+    let state = pfio.digital_read(input_pin)
+    let action = state == 1 ? "Schliessen" : "Öffnen"
+    response.render("confirm", {
+      name: request.body.username,
+      pwd: request.body.password,
+      status: state == 1 ? "offen" : "geschlossen",
+      action: action
+    })
+  } else {
+    response.render("answer", {message: "Wer bist denn du???"})
+  }
+})
+
+/*
+ "Taste drücken", wenn username und passwort stimmen
+ */
+app.post("/garage/action", function (request, response) {
+  let user = request.body.username.toLocaleLowerCase()
+  let password = JSON.stringify(hash(request.body.password + salt))
+  let valid = nconf.get(user)
+  if (valid && valid === password) {
+    pfio.digital_write(output_pin, 1)
     setTimeout(function () {
-      pfio.digital_write(pin, 0)
+      pfio.digital_write(output_pin, 0)
     }, time_to_push);
 
     response.render("answer", {message: "Auftrag ausgeführt, " + request.body.username})
@@ -73,9 +124,9 @@ app.post("/garage", function (request, response) {
   }
 })
 
-
 /**
- * Add a new user. Master password is required. If no master password exists, it is created
+ * Einen neuen User eintragen. Als letzter Parameter muss das Master-Passwort angegeben werden.
+ * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen.
  */
 app.get("/adduser/:username/:password/:master", function (req, resp) {
   let master = JSON.stringify(hash(req.params.master + salt))
@@ -96,9 +147,10 @@ app.get("/adduser/:username/:password/:master", function (req, resp) {
 })
 
 /**
- * remove a user. Master password is needed
+ * Einen User löschen. Als letzter Parameter muss das Master-Passwort angegeben werden.
+ * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen..
  */
-app.get("/remove/:username/:master",function(req,resp){
+app.get("/remove/:username/:master", function (req, resp) {
   let master = JSON.stringify(hash(req.params.master + salt))
   let stored = nconf.get("admin")
   if (!stored) {
@@ -106,30 +158,38 @@ app.get("/remove/:username/:master",function(req,resp){
     stored = master
   }
   if (stored === master) {
-    nconf.set(req.params.username,undefined)
+    nconf.set(req.params.username, undefined)
     nconf.save()
-    resp.render("answer",{message: "ok"})
+    resp.render("answer", {message: "ok"})
   }
 })
 
-app.get("/disable/:master",function(req,resp){
+/**
+ * Server inaktiv schalten. Als Parameter muss das Master-Passwort angegeben werden.
+ * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen.
+ */
+app.get("/disable/:master", function (req, resp) {
   let master = JSON.stringify(hash(req.params.master + salt))
   let stored = nconf.get("admin")
-  if(stored===master) {
+  if (stored === master) {
     disabled = true
     resp.render("answer", {message: "disabled"})
-  }else{
+  } else {
     resp.render("answer", {message: "Insufficient rights"})
   }
 })
 
-app.get("/enable/:master",function(req,resp){
+/**
+ * Server aktiv schalten.  Als Parameter muss das Master-Passwort angegeben werden.
+ * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen.
+ */
+app.get("/enable/:master", function (req, resp) {
   let master = JSON.stringify(hash(req.params.master + salt))
   let stored = nconf.get("admin")
-  if(stored===master) {
+  if (stored === master) {
     disabled = false
     resp.render("answer", {message: "enabled"})
-  }else{
+  } else {
     resp.render("answer", {message: "Insufficient rights"})
   }
 })

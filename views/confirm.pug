@@ -1,0 +1,12 @@
+extends layout.pug
+
+block content
+
+  .container
+    .row
+      h3(style="color:blue") Willkommen, #{name}
+      p Die Garage ist <b>#{status}</b>
+      form.col.s12(method="post" action="/garage/action")
+        input(type="hidden" name="username" value=name)
+        input(type="hidden" name="password" value=pwd)
+        button(type="submit" name="action") #{action}
