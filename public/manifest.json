@@ -1,0 +1,17 @@
+{
+  "short_name": "Garage",
+  "name": "Garage",
+  "icons":[
+    {
+      "src":"garage-57x57.png",
+      "type":"image/png",
+      "sizes":"57x57"
+    },
+    {
+      "src":"garage-114x114.png",
+      "type":"image/png",
+      "sizes":"114x114"
+    }
+  ],
+  "start_url": "/?launcher=true"
+}
