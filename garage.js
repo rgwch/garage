@@ -101,6 +101,7 @@ app.post("/garage", function (request, response) {
       action: action
     })
   } else {
+    console.log("Loginfehler mit Name "+request.body.username+", "+new Date())
     response.render("answer", {message: "Wer bist denn du???"})
   }
 })
@@ -113,6 +114,7 @@ app.post("/garage/action", function (request, response) {
   let password = JSON.stringify(hash(request.body.password + salt))
   let valid = nconf.get(user)
   if (valid && valid === password) {
+    console.log("Garage "+request.body.action+", "+new Date())
     pfio.digital_write(output_pin, 1)
     setTimeout(function () {
       pfio.digital_write(output_pin, 0)
@@ -120,6 +122,7 @@ app.post("/garage/action", function (request, response) {
 
     response.render("answer", {message: "Auftrag ausgeführt, " + request.body.username})
   } else {
+    console.log("Loginfehler mit Name "+request.body.username+", "+new Date())
     response.render("answer", {message: "Wer bist denn du???"})
   }
 })
@@ -142,6 +145,7 @@ app.get("/adduser/:username/:password/:master", function (req, resp) {
     nconf.save()
     resp.render("answer", {message: "Ok"})
   } else {
+    console.log("Admin-Fehler bei adduser mit Name "+req.params.username+", "+new Date())
     resp.render("answer", {message: "Insufficient rights"})
   }
 })
@@ -161,6 +165,9 @@ app.get("/remove/:username/:master", function (req, resp) {
     nconf.set(req.params.username, undefined)
     nconf.save()
     resp.render("answer", {message: "ok"})
+  }else{
+    console.log("Admin-Fehler bei remove mit Name "+req.params.username+", "+new Date())
+    resp.render("answer", {message: "Insufficient rights"})
   }
 })
 
@@ -175,6 +182,7 @@ app.get("/disable/:master", function (req, resp) {
     disabled = true
     resp.render("answer", {message: "disabled"})
   } else {
+    console.log("Admin-Fehler bei disable, "+new Date())
     resp.render("answer", {message: "Insufficient rights"})
   }
 })
@@ -190,6 +198,7 @@ app.get("/enable/:master", function (req, resp) {
     disabled = false
     resp.render("answer", {message: "enabled"})
   } else {
+    console.log("Admin-Fehler bei enable, "+new Date())
     resp.render("answer", {message: "Insufficient rights"})
   }
 })
