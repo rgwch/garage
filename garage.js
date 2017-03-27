@@ -119,6 +119,7 @@ function setLock(user){    
  lockinf["attempt"] += 1  
  lockinf["time"]=now    
  failures[user] = lockinf
+ return Math.round((Math.pow(2,lockinf.attempt)*lock_time)/1000)
 }
 /**
  * Zugriffstest
@@ -139,9 +140,9 @@ app.post("/garage/*", function (request, response, next) {
       next()
     } else {
       console.log("Loginfehler mit Name " + user + ", " + new Date())
-      setLock(user)
+      secs=setLock(user)
      response.render("answer", {
-        message: "Wer bist denn du??? Sperre " + Math.round((Math.pow(2, lockinf["attempt"]) * lock_time) / 1000) + " Sekunden."
+        message: "Wer bist denn du??? Sperre " + secs + " Sekunden."
       })
     }
   }
@@ -164,7 +165,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
       console.log("Admin-Fehler" + req.params.username + ", " + new Date())
      setLock("admin")
       resp.render("answer", {
-        message: "Insufficient rights"
+        message: "Insufficient rights. Wait "+secs+" seconds."
       })
     }
   }
