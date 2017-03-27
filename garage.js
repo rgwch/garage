@@ -132,8 +132,9 @@ app.post("/garage/*", function (request, response, next) {
     } else {
       console.log("Loginfehler mit Name " + user + ", " + new Date())
       let now = new Date().getTime()
-      let lockinf = failures[user] ? failures[user] : {"time": now, "attempt": 0}
+      let lockinf = failures[user] ? failures[user] : {"attempt": 0}
       lockinf["attempt"] += 1
+     lockinf["time"]=now
       failures[user] = lockinf
       response.render("answer", {
         message: "Wer bist denn du??? Sperre " + Math.round((Math.pow(2, lockinf["attempt"]) * lock_time) / 1000) + " Sekunden."
@@ -158,8 +159,9 @@ app.get("/adm/:master/*", function (req, resp, next) {
     } else {
       console.log("Admin-Fehler" + req.params.username + ", " + new Date())
       let now = new Date().getTime()
-      let lockinf = failures['admin'] ? failures['admin'] : {"time": now, "attempt": 0}
+      let lockinf = failures['admin'] ? failures['admin'] : {"attempt": 0}
       lockinf["attempt"] += 1
+     lockinf["time"]=now
       failures['admin'] = lockinf
 
       resp.render("answer", {
