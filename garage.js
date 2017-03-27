@@ -112,6 +112,14 @@ function isLocked(lockinfo) {
   }
   return false;
 }
+
+function setLock(user){    
+ let now = new Date().getTime()  
+ let lockinf = failures[user] ? failures[user] : {"attempt": 0} 
+ lockinf["attempt"] += 1  
+ lockinf["time"]=now    
+ failures[user] = lockinf
+}
 /**
  * Zugriffstest
  * Wenn ein user gesperrt ist, dann prüfe, ob die Sperre abgelaufen ist. Wenn nein, abweisen
@@ -131,12 +139,8 @@ app.post("/garage/*", function (request, response, next) {
       next()
     } else {
       console.log("Loginfehler mit Name " + user + ", " + new Date())
-      let now = new Date().getTime()
-      let lockinf = failures[user] ? failures[user] : {"attempt": 0}
-      lockinf["attempt"] += 1
-     lockinf["time"]=now
-      failures[user] = lockinf
-      response.render("answer", {
+      setLock(user)
+     response.render("answer", {
         message: "Wer bist denn du??? Sperre " + Math.round((Math.pow(2, lockinf["attempt"]) * lock_time) / 1000) + " Sekunden."
       })
     }
@@ -158,12 +162,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
       next()
     } else {
       console.log("Admin-Fehler" + req.params.username + ", " + new Date())
-      let now = new Date().getTime()
-      let lockinf = failures['admin'] ? failures['admin'] : {"attempt": 0}
-      lockinf["attempt"] += 1
-     lockinf["time"]=now
-      failures['admin'] = lockinf
-
+     setLock("admin")
       resp.render("answer", {
         message: "Insufficient rights"
       })
