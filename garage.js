@@ -140,7 +140,7 @@ app.post("/garage/*", function (request, response, next) {
       next()
     } else {
       console.log("Loginfehler mit Name " + user + ", " + new Date())
-      secs=setLock(user)
+      let secs=setLock(user)
      response.render("answer", {
         message: "Wer bist denn du??? Sperre " + secs + " Sekunden."
       })
@@ -163,7 +163,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
       next()
     } else {
       console.log("Admin-Fehler" + req.params.username + ", " + new Date())
-     setLock("admin")
+     let secs=setLock("admin")
       resp.render("answer", {
         message: "Insufficient rights. Wait "+secs+" seconds."
       })
