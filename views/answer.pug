@@ -3,7 +3,7 @@ extends layout.pug
 block content
   .container
     .row
-      p.col.s12(style="font-size:large") Die Garage sagt: '#{message}'
+      p.col.s12(style="font-size:large") Die Garage sagt: !{message}
       a.col.s3.btn.waves-effect.waves-light(href="/") Zurück
       a.col.s3.offset-s1.btn.waves-effect.waves-light(href="http://www.google.ch") Irgendwo anders hin
 

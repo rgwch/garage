@@ -5,7 +5,7 @@
 
 "use strict"
 
-// Damit wir das Programm auf einem normalen PC testen können. Wenn es auf dem echten Pi läuft, true setzen
+// Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = false
 // Pin des piface für den output. pin 1 ist das linke Relais.
 const output_pin = 1
@@ -282,5 +282,34 @@ app.get("/adm/:master/enable", function (req, resp) {
   disabled = false
   resp.render("answer", {
     message: "enabled"
+  })
+})
+
+/**
+ * Passwort ändern
+ */
+app.post("/garage/chpwd",function(req,resp) {
+  let npwd=req.body.npwd
+  if(npwd && npwd.length>4 && /\d/.test(npwd) && /[a-zA-Z]/.test(npwd)) {
+    nconf.set(req.body.username, JSON.stringify(hash(req.body.npwd + salt)))
+    nconf.save()
+    console.log(req.body.username + " changed password, " + new Date())
+    resp.render("answer", {message: "Ab sofort gilt das neue Passwort"})
+  }else{
+    resp.render("answer",{message:"Das neue Passwort muss mindestens 5 Zeichen lang sein und sowohl Zahlen als auch Buchstaben enthalten."})
+  }
+})
+
+/**
+ * Logfile auslesen
+ */
+app.get("/adm/:master/log",function(req,resp){
+  fs.readFile("../forever.log",function(err,data){
+    if(err){
+      resp.render("answer",{message:err})
+    }else{
+      var lines=data.toString().split("\n")
+      resp.render("answer",{message:"<p>"+lines.join("<br>")+"</p>"})
+    }
   })
 })

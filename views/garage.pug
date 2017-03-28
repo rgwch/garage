@@ -11,9 +11,11 @@ block content
             .input-field.col.s12
               i.material-icons.prefix account_circle
               input(type="text" name="username" placeholder="Username" id="uname")
-            .input-field.col.s12
+            .input-field.col.s8
               i.material-icons.prefix vpn_key
-              input(type="password" name="password" placeholder="Passwort")
+              input(type="password" name="password" placeholder="Passwort" id="pwd")
+            .btn.btn-flat.col.s4(onClick="enterPwd()") ändern...
+
             button.btn.waves-effect.waves-light.col.s12(type="submit" name="action") Senden
               i.material-icons.right send
 
