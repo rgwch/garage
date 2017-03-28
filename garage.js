@@ -7,14 +7,17 @@
 
 // Damit wir das Programm auf einem normalen PC testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = false
-
 // Pin des piface für den output. pin 1 ist das linke Relais.
 const output_pin = 1
 // pin für den Schalter, der feststellt, ob das Garagentor offen ist
 const input_pin = 0
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 1200
+// Dauer des Öffnungs/Schliessvorgangs des Tors
+const time_to_run = 4000
+// Aussperren bei falscher Passworteingabe
 const lock_time = 3000
+
 const fs = require('fs')
 const https = require('https')
 const express = require('express')
@@ -38,7 +41,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 /*
  HTTPS-Server erstellen, damit Usernamen und Passwörter verschlüsselt übermittelt werden.
  Als Zertifikat kann man entweder ein self-signed certificate verwenden
- (wie hier gezeigt: http://blog.mgechev.com/2014/02/19/create-https-tls-ssl-application-with-express-nodejs/).
+ (openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes).
  Dann muss man allerdings damit leben, dass der Browser eine "Sicherheitswarnung" ausgibt.
 
  Oder man erstellt ein Zertifikat via letsencrypt, mit "sudo certbot certonly --manual" und kopiert
@@ -113,13 +116,13 @@ function isLocked(lockinfo) {
   return false;
 }
 
-function setLock(user){    
- let now = new Date().getTime()  
- let lockinf = failures[user] ? failures[user] : {"attempt": 0} 
- lockinf["attempt"] += 1  
- lockinf["time"]=now    
- failures[user] = lockinf
- return Math.round((Math.pow(2,lockinf.attempt)*lock_time)/1000)
+function setLock(user) {
+  let now = new Date().getTime()
+  let lockinf = failures[user] ? failures[user] : {"attempt": 0}
+  lockinf["attempt"] += 1
+  lockinf["time"] = now
+  failures[user] = lockinf
+  return Math.round((Math.pow(2, lockinf.attempt) * lock_time) / 1000)
 }
 /**
  * Zugriffstest
@@ -140,8 +143,8 @@ app.post("/garage/*", function (request, response, next) {
       next()
     } else {
       console.log("Loginfehler mit Name " + user + ", " + new Date())
-      let secs=setLock(user)
-     response.render("answer", {
+      let secs = setLock(user)
+      response.render("answer", {
         message: "Wer bist denn du??? Sperre " + secs + " Sekunden."
       })
     }
@@ -149,9 +152,9 @@ app.post("/garage/*", function (request, response, next) {
 })
 
 app.get("/adm/:master/*", function (req, resp, next) {
-  if(isLocked(failures['admin'])){
+  if (isLocked(failures['admin'])) {
     resp.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
-  }else {
+  } else {
     let master = JSON.stringify(hash(req.params.master + salt))
     let stored = nconf.get("admin")
     if (!stored) {
@@ -163,9 +166,9 @@ app.get("/adm/:master/*", function (req, resp, next) {
       next()
     } else {
       console.log("Admin-Fehler" + req.params.username + ", " + new Date())
-     let secs=setLock("admin")
+      let secs = setLock("admin")
       resp.render("answer", {
-        message: "Insufficient rights. Wait "+secs+" seconds."
+        message: "Insufficient rights. Wait " + secs + " seconds."
       })
     }
   }
