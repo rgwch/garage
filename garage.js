@@ -32,6 +32,9 @@ nconf.file('users.json')
 const app = express()
 // Dieses Flag nutzen wir später, um den Server temporär inaktiv zu schalten.
 let disabled = false;
+// Dieses Flag zeigt an, dass das Garagentor gerade fährt
+let running = false
+// Hier sammeln wir schiefgegangene Login-Versuche
 const failures = {}
 
 app.set('view-cache', true)
@@ -75,27 +78,41 @@ if (realpi) {
   }
 }
 
-// view engine setup
+/**
+ * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
+ * pug benötigt wird, um sie nach HTML zu konvertieren.
+ */
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
+/**
+ * Expressjs mitteilen, dass wir json- und urlencoded Parameter im request body erwarten
+ */
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: false
 }));
 
-// Login-Screen anzeigen
+/**
+ * Endpoint für https://adresse:2017/
+ *  Login-Screen anzeigen
+ */
 app.get("/", function (request, response) {
   response.render("garage")
 })
 
 /**
- Check ob der Server inaktiv geschaltet ist
+ Check ob der Server inaktiv geschaltet ist, oder das Garagentor gerade läuft.
+ Wird vor jeden POST-Request ("/*") geschaltet.
  */
 app.post("/*", function (req, resp, next) {
   if (disabled) {
     resp.render("answer", {
-      message: "Sorry, server is paused"
+      message: "Der Server ist derzeit inaktiv geschaltet."
+    })
+  } else if (running) {
+    resp.render("answer", {
+      message: "Das Garagentor fährt gerade. Bitte warten."
     })
   } else {
     next()
@@ -116,6 +133,11 @@ function isLocked(lockinfo) {
   return false;
 }
 
+/**
+ * Aktuellen User sperren. Wenn er schon gesperrt ist, Sperrzeit verlängern
+ * @param user user
+ * @returns {number} Zahl an Sekunden der aktuellen Sperrzeit
+ */
 function setLock(user) {
   let now = new Date().getTime()
   let lockinf = failures[user] ? failures[user] : {"attempt": 0}
@@ -124,8 +146,9 @@ function setLock(user) {
   failures[user] = lockinf
   return Math.round((Math.pow(2, lockinf.attempt) * lock_time) / 1000)
 }
+
 /**
- * Zugriffstest
+ * Zugriffstest; wird vor alle https://server:2017/garage/... Anfragen POST requessts geschaltet
  * Wenn ein user gesperrt ist, dann prüfe, ob die Sperre abgelaufen ist. Wenn nein, abweisen
  * Sonst:
  * Wenn das Passwort korrekt ist, allfällige Sperren löschen
@@ -151,6 +174,11 @@ app.post("/garage/*", function (request, response, next) {
   }
 })
 
+/**
+ * Zugriffstest für Admin-Funktionen. Wird vor alle https://server:2017/adm/... GET requests geschaltet.
+ * Gemeinsame Syntax: /adm/masterpassword/funktion/parameter.
+ * Bei falschem Masterpasswort: Sperre setzen bzw. verlängern.
+ */
 app.get("/adm/:master/*", function (req, resp, next) {
   if (isLocked(failures['admin'])) {
     resp.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
@@ -175,7 +203,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
 })
 
 /*
- Nach dem Login-Screen: Aktuellen Zustand des Tors anzeigen, wenn Username udn Passwort stimmen
+ Nach dem Login-Screen und erfolgreicher Passworteingabe: Aktuellen Zustand des Tors anzeigen.
  */
 app.post("/garage/login", function (request, response) {
   let state = pfio.digital_read(input_pin)
@@ -190,15 +218,19 @@ app.post("/garage/login", function (request, response) {
 })
 
 /*
- "Taste drücken", wenn username und passwort stimmen
+ "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
+ keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
  */
 app.post("/garage/action", function (request, response) {
   console.log("Garage " + request.body.action + ", " + new Date())
+  running=true
   pfio.digital_write(output_pin, 1)
   setTimeout(function () {
     pfio.digital_write(output_pin, 0)
   }, time_to_push);
-
+  setTimeout(function(){
+    running=false
+  },time_to_run)
   response.render("answer", {
     message: "Auftrag ausgeführt, " + request.body.username
   })
