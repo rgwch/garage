@@ -119,6 +119,10 @@ app.post("/*", function (req, resp, next) {
   }
 })
 
+function encode(pwd){
+  var encoded=JSON.stringify(hash(pwd + salt))
+  return pwd
+}
 /**
  Check, ob der aktuelle Anwender gesperrt ist
  */
@@ -159,7 +163,7 @@ app.post("/garage/*", function (request, response, next) {
   if (isLocked(failures[user])) {
     response.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
   } else {
-    let password = JSON.stringify(hash(request.body.password + salt))
+    let password = encode(request.body.password)
     let valid = nconf.get(user)
     if (valid && valid === password) {
       delete failures[user]
@@ -183,7 +187,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
   if (isLocked(failures['admin'])) {
     resp.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
   } else {
-    let master = JSON.stringify(hash(req.params.master + salt))
+    let master = encode(req.params.master)
     let stored = nconf.get("admin")
     if (!stored) {
       nconf.set("admin", master)
@@ -242,7 +246,7 @@ app.post("/garage/action", function (request, response) {
  */
 app.get("/adm/:master/add/:username/:password", function (req, resp) {
   var user = req.params.username.toLocaleLowerCase()
-  var password = JSON.stringify(hash(req.params['password'] + salt))
+  var password = encode(req.params['password'])
   nconf.set(user, password)
   nconf.save()
   resp.render("answer", {
@@ -291,7 +295,7 @@ app.get("/adm/:master/enable", function (req, resp) {
 app.post("/garage/chpwd",function(req,resp) {
   let npwd=req.body.npwd
   if(npwd && npwd.length>4 && /\d/.test(npwd) && /[a-zA-Z]/.test(npwd)) {
-    nconf.set(req.body.username, JSON.stringify(hash(req.body.npwd + salt)))
+    nconf.set(req.body.username, encode(req.body.npwd))
     nconf.save()
     console.log(req.body.username + " changed password, " + new Date())
     resp.render("answer", {message: "Ab sofort gilt das neue Passwort"})
