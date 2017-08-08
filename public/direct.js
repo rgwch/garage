@@ -7,23 +7,26 @@ $(function () {
   $(window).focus(function(){
     let user = localStorage.getItem("garage_username")
     let pwd = localStorage.getItem("garage_password")
-    console.log("focus")
-    $.ajax({
-      type: "POST",
-      url: "/rest/state",
-      data: {"username": user, "password": pwd},
-      success: function (res) {
-        if (res.status === "ok") {
-          setState(res.state)
-        }else{
-          alert(res.message)
-        }
-      },
-      error: function (err) {
-        alert(JSON.stringify(err))
-      },
-      dataType: "json"
-    });
+    if(user && pwd) {
+      console.log("focus")
+      $.ajax({
+        type: "POST",
+        url: "/rest/state",
+        data: {"username": user, "password": pwd},
+        success: function (res) {
+          if (res.status === "ok") {
+            setState(res.state)
+          } else {
+            localStorage.removeItem("garage_password")
+            alert(res.message)
+          }
+        },
+        error: function (err) {
+          alert(JSON.stringify(err))
+        },
+        dataType: "json"
+      });
+    }
   })
 
   $('#opener').click(function () {
@@ -55,6 +58,7 @@ $(function () {
         localStorage.setItem("garage_password", $('#pwd').val())
         $('#credentials').hide()
         $('#opener').show()
+        $('#opener').click()
       })
     }
   })
