@@ -12,8 +12,7 @@ const output_pin = 1
 // pin für den Schalter, der feststellt, ob das Garagentor offen ist
 const input_pin = 0
 // Dauer des simulierten Tastendrucks in Millisekunden
-// Damit wir das Programm auf einem normalen PC testen können. Wenn es auf dem echten Pi läuft, true setzen
-const time_to_push = 1200
+const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors
 const time_to_run = 10000
 // Aussperren bei falscher Passworteingabe
@@ -120,6 +119,10 @@ app.post("/*", function (req, resp, next) {
   }
 })
 
+function encode(pwd) {
+  const encoded = JSON.stringify(hash(pwd + salt))
+  return encoded
+}
 /**
  Check, ob der aktuelle Anwender gesperrt ist
  */
@@ -160,7 +163,7 @@ app.post("/garage/*", function (request, response, next) {
   if (isLocked(failures[user])) {
     response.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
   } else {
-    let password = JSON.stringify(hash(request.body.password + salt))
+    let password = encode(request.body.password)
     let valid = nconf.get(user)
     if (valid && valid === password) {
       delete failures[user]
@@ -184,7 +187,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
   if (isLocked(failures['admin'])) {
     resp.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
   } else {
-    let master = JSON.stringify(hash(req.params.master + salt))
+    const master = encode(req.params.master)
     let stored = nconf.get("admin")
     if (!stored) {
       nconf.set("admin", master)
@@ -195,7 +198,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
       next()
     } else {
       console.log("Admin-Fehler" + req.params.username + ", " + new Date())
-      let secs = setLock("admin")
+      const secs = setLock("admin")
       resp.render("answer", {
         message: "Insufficient rights. Wait " + secs + " seconds."
       })
@@ -222,19 +225,25 @@ app.post("/garage/login", function (request, response) {
  "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
  keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
  */
-app.post("/garage/action", function (request, response) {
-  console.log("Garage " + request.body.action + ", " + new Date())
-  running=true
+function operateGarage(done) {
+  running = true
   pfio.digital_write(output_pin, 1)
   setTimeout(function () {
     pfio.digital_write(output_pin, 0)
   }, time_to_push);
-  setTimeout(function(){
-    running=false
-  },time_to_run)
-  response.render("answer", {
-    message: "Auftrag ausgeführt, " + request.body.username
-  })
+  setTimeout(function () {
+    running = false
+    done()
+  }, time_to_run)
+}
+
+app.post("/garage/action", function (request, response) {
+  console.log("Garage " + request.body.action + ", " + new Date())
+  operateGarage(function () {
+    response.render("answer", {
+      message: "Auftrag ausgeführt, " + request.body.username
+    })
+  });
 })
 
 /**
@@ -242,8 +251,8 @@ app.post("/garage/action", function (request, response) {
  * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen.
  */
 app.get("/adm/:master/add/:username/:password", function (req, resp) {
-  var user = req.params.username.toLocaleLowerCase()
-  var password = JSON.stringify(hash(req.params['password'] + salt))
+  const user = req.params.username.toLocaleLowerCase()
+  const password = encode(req.params['password'])
   nconf.set(user, password)
   nconf.save()
   resp.render("answer", {
@@ -289,28 +298,82 @@ app.get("/adm/:master/enable", function (req, resp) {
 /**
  * Passwort ändern
  */
-app.post("/garage/chpwd",function(req,resp) {
-  let npwd=req.body.npwd
-  if(npwd && npwd.length>4 && /\d/.test(npwd) && /[a-zA-Z]/.test(npwd)) {
-    nconf.set(req.body.username, JSON.stringify(hash(req.body.npwd + salt)))
+app.post("/garage/chpwd", function (req, resp) {
+  let npwd = req.body.npwd
+  if (npwd && npwd.length > 4 && /\d/.test(npwd) && /[a-zA-Z]/.test(npwd)) {
+    nconf.set(req.body.username, encode(req.body.npwd))
     nconf.save()
     console.log(req.body.username + " changed password, " + new Date())
     resp.render("answer", {message: "Ab sofort gilt das neue Passwort"})
-  }else{
-    resp.render("answer",{message:"Das neue Passwort muss mindestens 5 Zeichen lang sein und sowohl Zahlen als auch Buchstaben enthalten."})
+  } else {
+    resp.render("answer", {message: "Das neue Passwort muss mindestens 5 Zeichen lang sein und sowohl Zahlen als auch Buchstaben enthalten."})
   }
 })
 
 /**
  * Logfile auslesen
  */
-app.get("/adm/:master/log",function(req,resp){
-  fs.readFile("../forever.log",function(err,data){
-    if(err){
-      resp.render("answer",{message:err})
-    }else{
-      var lines=data.toString().split("\n")
-      resp.render("answer",{message:"<p>"+lines.join("<br>")+"</p>"})
+app.get("/adm/:master/log", function (req, resp) {
+  fs.readFile("../forever.log", function (err, data) {
+    if (err) {
+      resp.render("answer", {message: err})
+    } else {
+      var lines = data.toString().split("\n")
+      resp.render("answer", {message: "<p>" + lines.join("<br>") + "</p>"})
     }
   })
+})
+
+app.get("/rest", function (req, resp) {
+  let state = pfio.digital_read(input_pin)
+  resp.render("direct", {state: state})
+})
+
+
+app.post("/rest/operate", function (request, response) {
+  let user = request.body.username.toLocaleLowerCase()
+  if (isLocked(failures[user])) {
+    response.json({
+      status: "error",
+      message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
+    })
+  } else {
+    let password = encode(request.body.password)
+    let valid = nconf.get(user)
+    if (valid && valid === password) {
+      delete failures[user]
+      operateGarage(function () {
+        response.json({"status": "ok", "state": pfio.digital_read(input_pin)})
+      })
+    } else {
+      let secs = setLock(user)
+      response.json({
+        status: "error",
+        message: "Wer bist denn du??? Sperre " + secs + " Sekunden."
+      })
+    }
+  }
+})
+
+app.post("/rest/state", function (request, response) {
+  let user = request.body.username.toLocaleLowerCase()
+  if (isLocked(failures[user])) {
+    response.json({
+      status: "error",
+      message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
+    })
+  } else {
+    let password = encode(request.body.password)
+    let valid = nconf.get(user)
+    if (valid && valid === password) {
+      delete failures[user]
+      response.json({"status": "ok", "state": pfio.digital_read(input_pin)})
+    } else {
+      let secs = setLock(user)
+      response.json({
+        status: "error",
+        message: "Wer bist denn du??? Sperre " + secs + " Sekunden."
+      })
+    }
+  }
 })

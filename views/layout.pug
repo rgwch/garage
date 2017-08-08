@@ -1,12 +1,19 @@
+// Garagentor-Fernbedienung mit Raspberry Pi,
+   (c) 2017 by G. Weirich
+
 doctype html
 html
   head
     title= "Unsere Garage"
-    link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.0/css/materialize.min.css")
+    link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.1/css/materialize.min.css")
     link(href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet")
     meta(content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=2, user-scalable=0" name="viewport")
     link(rel="apple-touch-icon" href="/garage-57x57.png")
     link(rel="manifest" href="/manifest.json")
   body
     block content
-    script(src="simple.js")
+    script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js")
+    script(src="/direct.js")
+    script(src="/simple.js")
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.1/js/materialize.min.js")
+
