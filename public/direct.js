@@ -1,3 +1,8 @@
+/**
+ *  Garagentor-Fernbedienung mit Raspberry Pi
+ *  (c) 2017 by G. Weirich
+ */
+
 $(function () {
 
   let state = $('#opener').attr("data-status")

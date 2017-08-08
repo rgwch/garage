@@ -1,3 +1,8 @@
+/**
+ *  Garagentor-Fernbedienung mit Raspberry Pi
+ *  (c) 2017 by G. Weirich
+ */
+
 function enterPwd() {
   var npwd = prompt("Neues Passwort eingeben")
   if (npwd != null) {
