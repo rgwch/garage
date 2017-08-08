@@ -12,7 +12,7 @@ const output_pin = 1
 // pin für den Schalter, der feststellt, ob das Garagentor offen ist
 const input_pin = 0
 // Dauer des simulierten Tastendrucks in Millisekunden
-const time_to_push = 1200
+const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors
 const time_to_run = 4000
 // Aussperren bei falscher Passworteingabe
