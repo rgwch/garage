@@ -1,0 +1,16 @@
+extends layout.pug
+
+block content
+  .container
+    .row
+      .col.s8
+        h1 Garage
+        div(id="opener" data-status=state)
+          img(src="/garage_geschlossen.png" alt="geschlossen" style="display: none" id="garclosed")
+          img(src="/garage_offen.png" alt="offen" style="display: none" id="garopen")
+          img(src="/garage_frage.png" alt="offen" style="display: block" id="garquestion")
+          img(src="/garage_anim.gif" alt="running" style="display:none" id="garunning")
+        div(id="credentials" style="display:none;")
+          input(type="text" id="uname" placeholder="Name")
+          input(type="password" id="pwd" placeholder="Passwort")
+          button(id="setcred") Senden
