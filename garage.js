@@ -3,6 +3,7 @@
  *  (c) 2017 by G. Weirich
  */
 
+/* eslint-disable no-console */
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
@@ -71,7 +72,7 @@ if (realpi) {
   pfio = {
     digital_write: function () {
     },
-    digital_read: function (pin) {
+    digital_read: function () {
       pinstate = pinstate ? 0 : 1
       return pinstate
     }
@@ -145,8 +146,8 @@ function isLocked(lockinfo) {
 function setLock(user) {
   let now = new Date().getTime()
   let lockinf = failures[user] ? failures[user] : {"attempt": 0}
-  lockinf["attempt"] += 1
-  lockinf["time"] = now
+  lockinf.attempt += 1
+  lockinf.time = now
   failures[user] = lockinf
   return Math.round((Math.pow(2, lockinf.attempt) * lock_time) / 1000)
 }
@@ -184,7 +185,7 @@ app.post("/garage/*", function (request, response, next) {
  * Bei falschem Masterpasswort: Sperre setzen bzw. verlängern.
  */
 app.get("/adm/:master/*", function (req, resp, next) {
-  if (isLocked(failures['admin'])) {
+  if (isLocked(failures.admin)) {
     resp.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
   } else {
     const master = encode(req.params.master)
@@ -194,7 +195,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
       stored = master
     }
     if (stored === master) {
-      delete failures['admin']
+      delete failures.admin
       next()
     } else {
       console.log("Admin-Fehler" + req.params.username + ", " + new Date())
@@ -252,7 +253,7 @@ app.post("/garage/action", function (request, response) {
  */
 app.get("/adm/:master/add/:username/:password", function (req, resp) {
   const user = req.params.username.toLocaleLowerCase()
-  const password = encode(req.params['password'])
+  const password = encode(req.params.password)
   nconf.set(user, password)
   nconf.save()
   resp.render("answer", {
@@ -261,6 +262,7 @@ app.get("/adm/:master/add/:username/:password", function (req, resp) {
 
 })
 
+// noinspection Annotator
 /**
  * Einen User löschen. Als letzter Parameter muss das Master-Passwort angegeben werden.
  * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen..
@@ -318,7 +320,7 @@ app.get("/adm/:master/log", function (req, resp) {
     if (err) {
       resp.render("answer", {message: err})
     } else {
-      var lines = data.toString().split("\n")
+      const lines = data.toString().split("\n")
       resp.render("answer", {message: "<p>" + lines.join("<br>") + "</p>"})
     }
   })
