@@ -15,7 +15,7 @@ const input_pin = 0
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors
-const time_to_run = 4000
+const time_to_run = 6000
 // Aussperren bei falscher Passworteingabe
 const lock_time = 3000
 
@@ -70,9 +70,10 @@ if (realpi) {
 } else {
   let pinstate = 1
   pfio = {
-    digital_write: function () {
+    digital_write: function (pin,val) {
+
     },
-    digital_read: function () {
+    digital_read: function (pin) {
       pinstate = pinstate ? 0 : 1
       return pinstate
     }
@@ -94,32 +95,15 @@ app.use(bodyParser.urlencoded({
   extended: false
 }));
 
-/**
- * Endpoint für https://adresse:2017/
- *  Login-Screen anzeigen
- */
-app.get("/", function (request, response) {
-  response.render("garage")
-})
+/************************
+ * Hilfsfunktionen
+ *
+ ************************/
 
 /**
- Check ob der Server inaktiv geschaltet ist, oder das Garagentor gerade läuft.
- Wird vor jeden POST-Request ("/*") geschaltet.
+ * Password hashen
+ * @param pwd
  */
-app.post("/*", function (req, resp, next) {
-  if (disabled) {
-    resp.render("answer", {
-      message: "Der Server ist derzeit inaktiv geschaltet."
-    })
-  } else if (running) {
-    resp.render("answer", {
-      message: "Das Garagentor fährt gerade. Bitte warten."
-    })
-  } else {
-    next()
-  }
-})
-
 function encode(pwd) {
   const encoded = JSON.stringify(hash(pwd + salt))
   return encoded
@@ -151,6 +135,54 @@ function setLock(user) {
   failures[user] = lockinf
   return Math.round((Math.pow(2, lockinf.attempt) * lock_time) / 1000)
 }
+
+/**
+ "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
+ keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
+ */
+function operateGarage(done) {
+  running = true
+  pfio.digital_write(output_pin, 1)
+  setTimeout(function () {
+    pfio.digital_write(output_pin, 0)
+  }, time_to_push);
+  setTimeout(function () {
+    running = false
+    done()
+  }, time_to_run)
+}
+
+
+/***********************************
+ * Endpoints
+ *********************************/
+
+/**
+ * Endpoint für https://adresse:2017/
+ *  Login-Screen anzeigen
+ */
+app.get("/", function (request, response) {
+  response.render("garage")
+})
+
+/**
+ Check ob der Server inaktiv geschaltet ist, oder das Garagentor gerade läuft.
+ Wird vor jeden POST-Request ("/*") geschaltet.
+ */
+app.post("/*", function (req, resp, next) {
+  if (disabled) {
+    resp.render("answer", {
+      message: "Der Server ist derzeit inaktiv geschaltet."
+    })
+  } else if (running) {
+    resp.render("answer", {
+      message: "Das Garagentor fährt gerade. Bitte warten."
+    })
+  } else {
+    next()
+  }
+})
+
 
 /**
  * Zugriffstest; wird vor alle https://server:2017/garage/... Anfragen POST requessts geschaltet
@@ -207,7 +239,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
   }
 })
 
-/*
+/**
  Nach dem Login-Screen und erfolgreicher Passworteingabe: Aktuellen Zustand des Tors anzeigen.
  */
 app.post("/garage/login", function (request, response) {
@@ -222,22 +254,9 @@ app.post("/garage/login", function (request, response) {
 
 })
 
-/*
- "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
- keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
+/**
+ * Tastendruck simulieren
  */
-function operateGarage(done) {
-  running = true
-  pfio.digital_write(output_pin, 1)
-  setTimeout(function () {
-    pfio.digital_write(output_pin, 0)
-  }, time_to_push);
-  setTimeout(function () {
-    running = false
-    done()
-  }, time_to_run)
-}
-
 app.post("/garage/action", function (request, response) {
   console.log("Garage " + request.body.action + ", " + new Date())
   operateGarage(function () {
@@ -262,7 +281,6 @@ app.get("/adm/:master/add/:username/:password", function (req, resp) {
 
 })
 
-// noinspection Annotator
 /**
  * Einen User löschen. Als letzter Parameter muss das Master-Passwort angegeben werden.
  * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen..
@@ -326,12 +344,22 @@ app.get("/adm/:master/log", function (req, resp) {
   })
 })
 
+/*********************
+ * JSON Rest interface für Anwendung mit reinen Javascript Apps
+ ***********************/
+
+/**
+ * Script und View holen
+ */
 app.get("/rest", function (req, resp) {
   let state = pfio.digital_read(input_pin)
   resp.render("direct", {state: state})
 })
 
 
+/**
+ * Garagentor fahren
+ */
 app.post("/rest/operate", function (request, response) {
   let user = request.body.username.toLocaleLowerCase()
   if (isLocked(failures[user])) {
@@ -357,6 +385,9 @@ app.post("/rest/operate", function (request, response) {
   }
 })
 
+/**
+ * Status des Garagentors abfragen (0 geschlossen,1 offen)
+ */
 app.post("/rest/state", function (request, response) {
   let user = request.body.username.toLocaleLowerCase()
   if (isLocked(failures[user])) {
