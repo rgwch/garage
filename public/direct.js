@@ -70,8 +70,10 @@ $(function () {
             console.log("nach: "+res.state)
             doorstate = res.state
           } else {
-            doorstate = 4
-            localStorage.removeItem("garage_password")
+            if(res.message.startsWith("Wer")) {
+              doorstate = 4
+              localStorage.removeItem("garage_password")
+            }
             alert(res.message)
           }
           setPicture(doorstate)

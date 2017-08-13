@@ -70,7 +70,7 @@ if (realpi) {
 } else {
   let pinstate = 1
   pfio = {
-    digital_write: function (pin,val) {
+    digital_write: function (pin, val) {
 
     },
     digital_read: function (pin) {
@@ -108,6 +108,7 @@ function encode(pwd) {
   const encoded = JSON.stringify(hash(pwd + salt))
   return encoded
 }
+
 /**
  Check, ob der aktuelle Anwender gesperrt ist
  */
@@ -141,15 +142,20 @@ function setLock(user) {
  keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
  */
 function operateGarage(done) {
-  running = true
-  pfio.digital_write(output_pin, 1)
-  setTimeout(function () {
-    pfio.digital_write(output_pin, 0)
-  }, time_to_push);
-  setTimeout(function () {
-    running = false
-    done()
-  }, time_to_run)
+  if (running) {
+    return false
+  } else {
+    running = true
+    pfio.digital_write(output_pin, 1)
+    setTimeout(function () {
+      pfio.digital_write(output_pin, 0)
+    }, time_to_push);
+    setTimeout(function () {
+      running = false
+      done()
+    }, time_to_run)
+    return true
+  }
 }
 
 
@@ -173,10 +179,6 @@ app.post("/*", function (req, resp, next) {
   if (disabled) {
     resp.render("answer", {
       message: "Der Server ist derzeit inaktiv geschaltet."
-    })
-  } else if (running) {
-    resp.render("answer", {
-      message: "Das Garagentor fährt gerade. Bitte warten."
     })
   } else {
     next()
@@ -259,11 +261,13 @@ app.post("/garage/login", function (request, response) {
  */
 app.post("/garage/action", function (request, response) {
   console.log("Garage " + request.body.action + ", " + new Date())
-  operateGarage(function () {
-    response.render("answer", {
-      message: "Auftrag ausgeführt, " + request.body.username
-    })
-  });
+  if (!operateGarage(function () {
+      response.render("answer", {
+        message: "Auftrag ausgeführt, " + request.body.username
+      })
+    })) {
+    response.render("answer", {message: "Das Garagentor fährt gerade. Bitte warten."})
+  }
 })
 
 /**
@@ -348,6 +352,27 @@ app.get("/adm/:master/log", function (req, resp) {
  * JSON Rest interface für Anwendung mit reinen Javascript Apps
  ***********************/
 
+function checkCredentials(request) {
+  if(request.body.username) {
+    let user = request.body.username.toLocaleLowerCase()
+    if (isLocked(failures[user])) {
+      return "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
+    } else {
+      let password = encode(request.body.password)
+      let valid = nconf.get(user)
+      if (valid && valid === password) {
+        delete failures[user]
+        return ""
+      } else {
+        let secs = setLock(user)
+        return "Wer bist denn du??? Sperre " + secs + " Sekunden."
+      }
+    }
+  }else{
+    return "Kein Username oder Passwort angegeben."
+  }
+}
+
 /**
  * Script und View holen
  */
@@ -361,27 +386,15 @@ app.get("/rest", function (req, resp) {
  * Garagentor fahren
  */
 app.post("/rest/operate", function (request, response) {
-  let user = request.body.username.toLocaleLowerCase()
-  if (isLocked(failures[user])) {
-    response.json({
-      status: "error",
-      message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
-    })
-  } else {
-    let password = encode(request.body.password)
-    let valid = nconf.get(user)
-    if (valid && valid === password) {
-      delete failures[user]
-      operateGarage(function () {
+  let auth = checkCredentials(request)
+  if (auth == "") {
+    if (!operateGarage(function () {
         response.json({"status": "ok", "state": pfio.digital_read(input_pin)})
-      })
-    } else {
-      let secs = setLock(user)
-      response.json({
-        status: "error",
-        message: "Wer bist denn du??? Sperre " + secs + " Sekunden."
-      })
+      })) {
+      response.json({"status": "error", message: "Das Garagentor fährt gerade. Bitte warten"})
     }
+  } else {
+    response.json({status: "error", message: auth})
   }
 })
 
@@ -389,24 +402,10 @@ app.post("/rest/operate", function (request, response) {
  * Status des Garagentors abfragen (0 geschlossen,1 offen)
  */
 app.post("/rest/state", function (request, response) {
-  let user = request.body.username.toLocaleLowerCase()
-  if (isLocked(failures[user])) {
-    response.json({
-      status: "error",
-      message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
-    })
-  } else {
-    let password = encode(request.body.password)
-    let valid = nconf.get(user)
-    if (valid && valid === password) {
-      delete failures[user]
-      response.json({"status": "ok", "state": pfio.digital_read(input_pin)})
-    } else {
-      let secs = setLock(user)
-      response.json({
-        status: "error",
-        message: "Wer bist denn du??? Sperre " + secs + " Sekunden."
-      })
-    }
+  let auth=checkCredentials(request)
+  if(auth==""){
+    response.json({"status": "ok", "state": pfio.digital_read(input_pin)})
+  }else{
+    response.json({status: "error",message: auth})
   }
 })
