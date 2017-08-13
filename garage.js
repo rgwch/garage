@@ -7,7 +7,7 @@
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi = true
+const realpi = false
 // Pin des piface für den output. pin 1 ist das linke Relais.
 const output_pin = 1
 // pin für den Schalter, der feststellt, ob das Garagentor offen ist
