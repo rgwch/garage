@@ -3,6 +3,7 @@
  *  (c) 2017 by G. Weirich
  */
 
+/* eslint-disable no-console */
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
@@ -14,7 +15,7 @@ const input_pin = 0
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors
-const time_to_run = 10000
+const time_to_run = 12000
 // Aussperren bei falscher Passworteingabe
 const lock_time = 3000
 
@@ -69,7 +70,8 @@ if (realpi) {
 } else {
   let pinstate = 1
   pfio = {
-    digital_write: function () {
+    digital_write: function (pin,val) {
+
     },
     digital_read: function (pin) {
       pinstate = pinstate ? 0 : 1
@@ -92,6 +94,68 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: false
 }));
+
+/************************
+ * Hilfsfunktionen
+ *
+ ************************/
+
+/**
+ * Password hashen
+ * @param pwd
+ */
+function encode(pwd) {
+  const encoded = JSON.stringify(hash(pwd + salt))
+  return encoded
+}
+/**
+ Check, ob der aktuelle Anwender gesperrt ist
+ */
+function isLocked(lockinfo) {
+  if (lockinfo) {
+    let now = new Date().getTime()
+    let locked_until = lockinfo.time + (Math.pow(2, lockinfo.attempt) * lock_time)
+    if (now < locked_until) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Aktuellen User sperren. Wenn er schon gesperrt ist, Sperrzeit verlängern
+ * @param user user
+ * @returns {number} Zahl an Sekunden der aktuellen Sperrzeit
+ */
+function setLock(user) {
+  let now = new Date().getTime()
+  let lockinf = failures[user] ? failures[user] : {"attempt": 0}
+  lockinf.attempt += 1
+  lockinf.time = now
+  failures[user] = lockinf
+  return Math.round((Math.pow(2, lockinf.attempt) * lock_time) / 1000)
+}
+
+/**
+ "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
+ keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
+ */
+function operateGarage(done) {
+  running = true
+  pfio.digital_write(output_pin, 1)
+  setTimeout(function () {
+    pfio.digital_write(output_pin, 0)
+  }, time_to_push);
+  setTimeout(function () {
+    running = false
+    done()
+  }, time_to_run)
+}
+
+
+/***********************************
+ * Endpoints
+ *********************************/
 
 /**
  * Endpoint für https://adresse:2017/
@@ -119,37 +183,6 @@ app.post("/*", function (req, resp, next) {
   }
 })
 
-function encode(pwd) {
-  const encoded = JSON.stringify(hash(pwd + salt))
-  return encoded
-}
-/**
- Check, ob der aktuelle Anwender gesperrt ist
- */
-function isLocked(lockinfo) {
-  if (lockinfo) {
-    let now = new Date().getTime()
-    let locked_until = lockinfo.time + (Math.pow(2, lockinfo.attempt) * lock_time)
-    if (now < locked_until) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Aktuellen User sperren. Wenn er schon gesperrt ist, Sperrzeit verlängern
- * @param user user
- * @returns {number} Zahl an Sekunden der aktuellen Sperrzeit
- */
-function setLock(user) {
-  let now = new Date().getTime()
-  let lockinf = failures[user] ? failures[user] : {"attempt": 0}
-  lockinf["attempt"] += 1
-  lockinf["time"] = now
-  failures[user] = lockinf
-  return Math.round((Math.pow(2, lockinf.attempt) * lock_time) / 1000)
-}
 
 /**
  * Zugriffstest; wird vor alle https://server:2017/garage/... Anfragen POST requessts geschaltet
@@ -184,7 +217,7 @@ app.post("/garage/*", function (request, response, next) {
  * Bei falschem Masterpasswort: Sperre setzen bzw. verlängern.
  */
 app.get("/adm/:master/*", function (req, resp, next) {
-  if (isLocked(failures['admin'])) {
+  if (isLocked(failures.admin)) {
     resp.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
   } else {
     const master = encode(req.params.master)
@@ -194,7 +227,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
       stored = master
     }
     if (stored === master) {
-      delete failures['admin']
+      delete failures.admin
       next()
     } else {
       console.log("Admin-Fehler" + req.params.username + ", " + new Date())
@@ -206,7 +239,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
   }
 })
 
-/*
+/**
  Nach dem Login-Screen und erfolgreicher Passworteingabe: Aktuellen Zustand des Tors anzeigen.
  */
 app.post("/garage/login", function (request, response) {
@@ -221,22 +254,9 @@ app.post("/garage/login", function (request, response) {
 
 })
 
-/*
- "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
- keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
+/**
+ * Tastendruck simulieren
  */
-function operateGarage(done) {
-  running = true
-  pfio.digital_write(output_pin, 1)
-  setTimeout(function () {
-    pfio.digital_write(output_pin, 0)
-  }, time_to_push);
-  setTimeout(function () {
-    running = false
-    done()
-  }, time_to_run)
-}
-
 app.post("/garage/action", function (request, response) {
   console.log("Garage " + request.body.action + ", " + new Date())
   operateGarage(function () {
@@ -252,7 +272,7 @@ app.post("/garage/action", function (request, response) {
  */
 app.get("/adm/:master/add/:username/:password", function (req, resp) {
   const user = req.params.username.toLocaleLowerCase()
-  const password = encode(req.params['password'])
+  const password = encode(req.params.password)
   nconf.set(user, password)
   nconf.save()
   resp.render("answer", {
@@ -318,18 +338,28 @@ app.get("/adm/:master/log", function (req, resp) {
     if (err) {
       resp.render("answer", {message: err})
     } else {
-      var lines = data.toString().split("\n")
+      const lines = data.toString().split("\n")
       resp.render("answer", {message: "<p>" + lines.join("<br>") + "</p>"})
     }
   })
 })
 
+/*********************
+ * JSON Rest interface für Anwendung mit reinen Javascript Apps
+ ***********************/
+
+/**
+ * Script und View holen
+ */
 app.get("/rest", function (req, resp) {
   let state = pfio.digital_read(input_pin)
   resp.render("direct", {state: state})
 })
 
 
+/**
+ * Garagentor fahren
+ */
 app.post("/rest/operate", function (request, response) {
   let user = request.body.username.toLocaleLowerCase()
   if (isLocked(failures[user])) {
@@ -355,6 +385,9 @@ app.post("/rest/operate", function (request, response) {
   }
 })
 
+/**
+ * Status des Garagentors abfragen (0 geschlossen,1 offen)
+ */
 app.post("/rest/state", function (request, response) {
   let user = request.body.username.toLocaleLowerCase()
   if (isLocked(failures[user])) {

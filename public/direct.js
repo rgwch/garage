@@ -5,57 +5,18 @@
 
 $(function () {
 
-  let state = $('#opener').attr("data-status")
-  console.log("state is " + state)
-  setState(state)
+  let doorstate = $('#opener').attr("data-status")
+  //console.log("state is " + state)
+  setPicture(doorstate)
 
-  $(window).focus(function(){
-    let user = localStorage.getItem("garage_username")
-    let pwd = localStorage.getItem("garage_password")
-    if(user && pwd) {
-      console.log("focus")
-      $.ajax({
-        type: "POST",
-        url: "/rest/state",
-        data: {"username": user, "password": pwd},
-        success: function (res) {
-          if (res.status === "ok") {
-            setState(res.state)
-          } else {
-            localStorage.removeItem("garage_password")
-            alert(res.message)
-          }
-        },
-        error: function (err) {
-          alert(JSON.stringify(err))
-        },
-        dataType: "json"
-      });
-    }
+  $(window).focus(function () {
+    doCall("/rest/state")
   })
 
   $('#opener').click(function () {
-    let user = localStorage.getItem("garage_username")
-    let pwd = localStorage.getItem("garage_password")
-    if (user && pwd) {
-      setState(2)
-      $.ajax({
-        type: "POST",
-        url: "/rest/operate",
-        data: {"username": user, "password": pwd},
-        success: function (res) {
-          if (res.status === "ok") {
-            setState(res.state)
-          }else{
-            alert(res.message)
-          }
-        },
-        error: function (err) {
-          alert(JSON.stringify(err))
-        },
-        dataType: "json"
-      });
-    } else {
+    console.log("vor:" +doorstate)
+    setPicture(parseInt(doorstate) === 0 ? 2 : 3)
+    if (!doCall("/rest/operate")){
       $('#opener').hide()
       $('#credentials').show()
       $('#setcred').click(function () {
@@ -68,23 +29,65 @@ $(function () {
     }
   })
 
-  function clearState() {
+  function clearPicture() {
     $('#garopen').hide()
     $('#garclosed').hide()
     $('#garquestion').hide()
-    $('#garunning').hide()
+    $('#garopening').hide()
+    $('#garclosing').hide()
   }
 
-  function setState(state) {
-    clearState()
-    if (state == 1) {
-      $('#garopen').show()
-    } else if (state == 0) {
-      $('#garclosed').show()
-    } else if(state==2){
-      $('#garunning').show()
-    }else {
-      $('#garquestion').show()
+  function setPicture(state) {
+    clearPicture()
+    switch (parseInt(state)) {
+      case 0:
+        $('#garclosed').show();
+        break;
+      case 1:
+        $('#garopen').show();
+        break;
+      case 2:
+        $('#garopening').show();
+        break;
+      case 3:
+        $('#garclosing').show();
+        break;
+      default:
+        $('#garquestion').show()
     }
   }
+
+  function doCall(addr) {
+    let user = localStorage.getItem("garage_username")
+    let pwd = localStorage.getItem("garage_password")
+    if (user && pwd) {
+      $.ajax({
+        type: "POST",
+        url: addr,
+        data: {"username": user, "password": pwd},
+        success: function (res) {
+          if (res.status === "ok") {
+            console.log("nach: "+res.state)
+            doorstate = res.state
+          } else {
+            doorstate = 4
+            localStorage.removeItem("garage_password")
+            alert(res.message)
+          }
+          setPicture(doorstate)
+        },
+        error: function (err) {
+          doorstate = 4
+          setPicture(4)
+          alert(JSON.stringify(err))
+        },
+        dataType: "json"
+      });
+      return true
+    } else {
+      return false
+    }
+
+  }
+
 })
