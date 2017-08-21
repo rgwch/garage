@@ -6,7 +6,6 @@
 $(function () {
 
   let doorstate = $('#opener').attr("data-status")
-  //console.log("state is " + state)
   setPicture(doorstate)
 
   $(window).focus(function () {
