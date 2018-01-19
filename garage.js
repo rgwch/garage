@@ -7,7 +7,7 @@
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi = false
+const realpi = true
 // Pin des piface für den output. pin 1 ist das linke Relais.
 const output_pin = 1
 // pin für den Schalter, der feststellt, ob das Garagentor offen ist
@@ -15,7 +15,7 @@ const input_pin = 0
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors
-const time_to_run = 12000
+const time_to_run = 15000
 // Aussperren bei falscher Passworteingabe
 const lock_time = 3000
 
@@ -361,6 +361,7 @@ function checkCredentials(request) {
       let password = encode(request.body.password)
       let valid = nconf.get(user)
       if (valid && valid === password) {
+	console.log(new Date()+"- userok: "+request.body.username);
         delete failures[user]
         return ""
       } else {
