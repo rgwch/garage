@@ -15,7 +15,7 @@ const input_pin = 0
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors
-const time_to_run = 15000
+const time_to_run = 18000
 // Aussperren bei falscher Passworteingabe
 const lock_time = 3000
 
