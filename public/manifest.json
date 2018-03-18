@@ -3,21 +3,21 @@
   "name": "Garage",
   "icons":[
     {
-      "src":"https://garage.weirich.ch:2017/garage-57x57.png",
+      "src":"https://xyz.ch/garage-57x57.png",
       "type":"image/png",
       "sizes":"57x47"
     },
     {
-      "src":"https://garage.weirich.ch:2017/garage-114x114.png",
+      "src":"https://xyz.ch/garage-114x114.png",
       "type":"image/png",
       "sizes":"114x94"
     },
     {
-      "src":"https://garage.weirich.ch:2017/garage-144x144.png",
+      "src":"https://xyz.ch/garage-144x144.png",
       "type":"image/png",
       "sizes":"144x144"
     }
   ],
-  "start_url": "https://garage.weirich.ch:2017/rest?launcher=true",
+  "start_url": "https://xyz.ch/rest?launcher=true",
   "display":"standalone"
 }

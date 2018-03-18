@@ -6,13 +6,11 @@
 $(function () {
 
   let doorstate = $('#opener').attr("data-status")
-  //console.log("state is " + state)
   setPicture(doorstate)
 
   $(window).focus(function () {
     doCall("/rest/state")
   })
-
   $('#opener').click(function () {
     console.log("vor:" +doorstate)
     setPicture(parseInt(doorstate) === 0 ? 2 : 3)
