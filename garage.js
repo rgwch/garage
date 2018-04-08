@@ -1,6 +1,10 @@
 /**
  *  Garagentor-Fernbedienung mit Raspberry Pi
  *  (c) 2017 by G. Weirich
+ * 
+ * 8.4.2018: Verwende Ulztraschall Sensor HC SR 04 zum feststellen, w das Garagentor steht anstelle des 
+ * Mikroschalters. Damit wird das Problem behoben, dass die Anzeige unzuverlässig ist, weil das Garagentor
+ * nicht immer exakt am selben Ort anhält (abhängig von Temperatur, Luftfeuchtigkeit, Gespenstern usw.)
  */
 
 /* eslint-disable no-console */
@@ -11,7 +15,12 @@ const realpi = true
 // Pin des piface für den output. pin 1 ist das linke Relais.
 const output_pin = 1
 // pin für den Schalter, der feststellt, ob das Garagentor offen ist
-const input_pin = 0
+//const input_pin = 0
+
+// Pins zur Steuerung des Ultraschallsensors
+const echo=0;
+const trigger=2;
+
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors
@@ -28,6 +37,7 @@ const path = require('path')
 const bodyParser = require('body-parser');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 const favicon = require('serve-favicon');
+const measure=require('./distance');
 
 nconf.file('users.json')
 const app = express()
@@ -187,7 +197,7 @@ app.post("/*", function (req, resp, next) {
 
 
 /**
- * Zugriffstest; wird vor alle https://server:2017/garage/... Anfragen POST requessts geschaltet
+ * Zugriffstest; wird vor alle https://server:2015/garage/... Anfragen POST requessts geschaltet
  * Wenn ein user gesperrt ist, dann prüfe, ob die Sperre abgelaufen ist. Wenn nein, abweisen
  * Sonst:
  * Wenn das Passwort korrekt ist, allfällige Sperren löschen
@@ -214,7 +224,7 @@ app.post("/garage/*", function (request, response, next) {
 })
 
 /**
- * Zugriffstest für Admin-Funktionen. Wird vor alle https://server:2017/adm/... GET requests geschaltet.
+ * Zugriffstest für Admin-Funktionen. Wird vor alle https://server:2015/adm/... GET requests geschaltet.
  * Gemeinsame Syntax: /adm/masterpassword/funktion/parameter.
  * Bei falschem Masterpasswort: Sperre setzen bzw. verlängern.
  */
@@ -245,15 +255,16 @@ app.get("/adm/:master/*", function (req, resp, next) {
  Nach dem Login-Screen und erfolgreicher Passworteingabe: Aktuellen Zustand des Tors anzeigen.
  */
 app.post("/garage/login", function (request, response) {
-  let state = pfio.digital_read(input_pin)
-  let action = state === 1 ? "Schliessen" : "Öffnen"
-  response.render("confirm", {
-    name: request.body.username,
-    pwd: request.body.password,
-    status: state === 1 ? "offen" : "geschlossen",
-    action: action
+  measure(pfio,trigger,echo,function(distance){
+    let action=(distance<100) ? "Schliessen" : "Öffnen";
+    response.render("confirm", {
+      name: request.body.username,
+      pwd: request.body.password,
+      status: distance < 100 ? "offen" : "geschlossen",
+      action: action
+    })
+  
   })
-
 })
 
 /**
@@ -378,8 +389,10 @@ function checkCredentials(request) {
  * Script und View holen
  */
 app.get("/rest", function (req, resp) {
-  let state = pfio.digital_read(input_pin)
-  resp.render("direct", {state: state})
+  measure(pfio,trigger,echo,function(distance){
+    let state=(distance<100) ? 1 : 0;
+    resp.render("direct", {state: state});
+  })
 })
 
 
@@ -405,7 +418,9 @@ app.post("/rest/operate", function (request, response) {
 app.post("/rest/state", function (request, response) {
   let auth=checkCredentials(request)
   if(auth==""){
-    response.json({"status": "ok", "state": pfio.digital_read(input_pin)})
+    measure(pfio,trigger,echo,function(distance){
+      response.json({"status": "ok", "state": distance<100 ? 1:0});
+    })
   }else{
     response.json({status: "error",message: auth})
   }
