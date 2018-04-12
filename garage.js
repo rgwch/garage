@@ -20,8 +20,8 @@ const output_pin = 1
 //const input_pin = 0
 
 // Pins zur Steuerung des Ultraschallsensors
-const echo=0;
-const trigger=2;
+const echo=7;
+const trigger=7;
 const MIN_DIST=100;
 
 // Dauer des simulierten Tastendrucks in Millisekunden
@@ -430,4 +430,10 @@ app.post("/rest/state", function (request, response) {
   }else{
     response.json({status: "error",message: auth})
   }
+})
+
+app.get("/rest/check",function(req,resp){
+  measure(pfio,trigger,echo,function(distance){
+    resp.json({"distance":distance});
+  })
 })
