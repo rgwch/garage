@@ -2,9 +2,11 @@
  *  Garagentor-Fernbedienung mit Raspberry Pi
  *  (c) 2017 by G. Weirich
  * 
- * 8.4.2018: Verwende Ulztraschall Sensor HC SR 04 zum feststellen, w das Garagentor steht anstelle des 
+ * 8.4.2018: Verwende Ulztraschall Sensor HC SR 04 zum feststellen, wo das Garagentor steht anstelle des 
  * Mikroschalters. Damit wird das Problem behoben, dass die Anzeige unzuverlässig ist, weil das Garagentor
- * nicht immer exakt am selben Ort anhält (abhängig von Temperatur, Luftfeuchtigkeit, Gespenstern usw.)
+ * nicht immer exakt am selben Ort anhält (abhängig von Temperatur, Luftfeuchtigkeit, Gespenstern usw.
+ * Wir vereinfachen das: Wenn die Oberkante des Garagentors näher als MIN_DIST vom Sensor ist, betrachten wir es 
+ * als offen.)
  */
 
 /* eslint-disable no-console */
@@ -20,6 +22,7 @@ const output_pin = 1
 // Pins zur Steuerung des Ultraschallsensors
 const echo=0;
 const trigger=2;
+const MIN_DIST=100;
 
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
@@ -256,11 +259,11 @@ app.get("/adm/:master/*", function (req, resp, next) {
  */
 app.post("/garage/login", function (request, response) {
   measure(pfio,trigger,echo,function(distance){
-    let action=(distance<100) ? "Schliessen" : "Öffnen";
+    let action=(distance<MIN_DIST) ? "Schliessen" : "Öffnen";
     response.render("confirm", {
       name: request.body.username,
       pwd: request.body.password,
-      status: distance < 100 ? "offen" : "geschlossen",
+      status: distance < MIN_DIST ? "offen" : "geschlossen",
       action: action
     })
   
@@ -390,7 +393,7 @@ function checkCredentials(request) {
  */
 app.get("/rest", function (req, resp) {
   measure(pfio,trigger,echo,function(distance){
-    let state=(distance<100) ? 1 : 0;
+    let state=(distance<MIN_DIST) ? 1 : 0;
     resp.render("direct", {state: state});
   })
 })
@@ -403,7 +406,10 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (!operateGarage(function () {
-        response.json({"status": "ok", "state": pfio.digital_read(input_pin)})
+        measure(pfio,trigger,echo,function(distance){
+          response.json({"status": "ok", "state": distance<MIN_DIST ? 1:0})
+
+        })
       })) {
       response.json({"status": "error", message: "Das Garagentor fährt gerade. Bitte warten"})
     }
@@ -419,7 +425,7 @@ app.post("/rest/state", function (request, response) {
   let auth=checkCredentials(request)
   if(auth==""){
     measure(pfio,trigger,echo,function(distance){
-      response.json({"status": "ok", "state": distance<100 ? 1:0});
+      response.json({"status": "ok", "state": distance<MIN_DIST ? 1:0});
     })
   }else{
     response.json({status: "error",message: auth})
