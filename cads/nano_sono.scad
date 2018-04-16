@@ -19,7 +19,7 @@ platine_l=51;
 clearance_floor=7;
 racksize=1.5;
 level_y=clearance_floor+thick+platine_t+racksize;
-ledsize=8;
+ledsize=5.4;
 
 /*
     Die Box
@@ -37,7 +37,7 @@ union(){
                     -offset])
                     cylinder(r=diameter/2,h=depth+5,$fn=steps);
         ledspace=platine_l/3;
-        ledoffs=3+center(ledspace,ledsize)+ledsize/2;
+        ledoffs=4+center(ledspace,ledsize)+ledsize/2;
         led(ledoffs);
         led(ledspace+ledoffs);
         led(2*ledspace+ledoffs);
@@ -55,8 +55,9 @@ union(){
             translate([0,-(platine_w+10),0]){
                 roundedCover([platine_l,platine_w,0],3,thick);
             }
-            translate([10,-(platine_w+10),0]){
-                 cube([10,5,10]);
+            // Kabel-Durchführung
+            translate([10,-(platine_w+10),-5]){
+                 cube([9,4,10]);
             }
         }
     
