@@ -1,4 +1,7 @@
-
+/********************************************
+Einige Hilfsmodule für die 3D-Druck Konstrukte
+Copyright (c) 2018 by G. Weirich
+*********************************************/
 /*
     Viereckige Dose. Parameter: Innenmasse, Wanddicke
 */
@@ -64,7 +67,7 @@ module roundedRect(size, radius,steps=50)
 }
 
 /*
-    Deckel für Box
+    Deckel für gerundete Box
 */
 module roundedCover(inner_size,radius,thick){
   roundedRect([inner_size.x+2*thick,  inner_size.y+2*thick, thick],radius);
