@@ -8,17 +8,17 @@
  * Wir vereinfachen das: Wenn die Oberkante des Garagentors näher als MIN_DIST vom Sensor ist, betrachten wir es 
  * als offen.)
  * 15.4.2018: Wechsel vom PiFace auf ein Standard-Relais, das mit onoff geschaltet wird. 
- * Ausserdem neiue Funktion: Abstandswarner an der Stirnseite der Garage einschalten, wenn das Tor offen ist.
+ * Ausserdem neue Funktion: Abstandswarner an der Stirnseite der Garage einschalten, wenn das Tor offen ist.
  */
 
-/* eslint-disable no-console */
+/* eslint-disable no-console*/
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = true
 
-// Pins zur Steuerung des Ultraschallsensors
-const MIN_DIST = 100;
+// Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
+const MAX_DISTANCE = 100;
 
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
@@ -167,9 +167,9 @@ function operateGarage(done) {
 /**
  * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen. 
  * Wenn das Tor offen ist, Arduino einschalten, sonst ausschalten.
- * @param {*} callback: Wird mit der Entfernung in cm aufgerufen.
+ * @param callback: Wird mit true für offen und false für geschlossen aufgerufen.
  */
-function measure(callback) {
+function doorState(callback) {
   hc_trigger.writeSync(1);
   setTimeout(function () {
     hc_trigger.writeSync(0);
@@ -183,8 +183,12 @@ function measure(callback) {
     }
     let time = end - start;
     let distance = time / 2 * 0.034;
-    arduino.writeSync(distance<MIN_DIST ? 1 : 0);
-    callback(distance);
+    let result={
+      distance:distance,
+      open: distance<MAX_DISTANCE ? true : false
+    }
+    arduino.writeSync(result);
+    callback(result);
   }, 15)
 }
 
@@ -275,14 +279,14 @@ app.get("/adm/:master/*", function (req, resp, next) {
  Nach dem Login-Screen und erfolgreicher Passworteingabe: Aktuellen Zustand des Tors anzeigen.
  */
 app.post("/garage/login", function (request, response) {
-  measure(distance=> {
-    let action = (distance < MIN_DIST) ? "Schliessen" : "Öffnen";
+  doorState(doorstate=> {
+    let action = doorstate.open ? "Schliessen" : "Öffnen";
     response.render("confirm", {
       name: request.body.username,
       pwd: request.body.password,
-      status: distance < MIN_DIST ? "offen" : "geschlossen",
+      status: doorstate.open ? "offen" : "geschlossen",
       action: action
-    })
+    });
 
   })
 })
@@ -409,8 +413,8 @@ function checkCredentials(request) {
  * Script und View holen
  */
 app.get("/rest", function (req, resp) {
-  measure(distance => {
-    let state = (distance < MIN_DIST) ? 1 : 0;
+  doorState(doorstate => {
+    let state = doorstate.open ? 1 : 0;
     resp.render("direct", { state: state });
   })
 })
@@ -423,8 +427,8 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (!operateGarage(function () {
-      measure(distance => {
-        response.json({ "status": "ok", "state": distance < MIN_DIST ? 1 : 0 })
+      doorState(state => {
+        response.json({ "status": "ok", "state": state.open ? 1 : 0 })
 
       })
     })) {
@@ -441,8 +445,8 @@ app.post("/rest/operate", function (request, response) {
 app.post("/rest/state", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
-    measure(distance => {
-      response.json({ "status": "ok", "state": distance < MIN_DIST ? 1 : 0 });
+    doorState(state => {
+      response.json({ "status": "ok", "state": state.open ? 1 : 0 });
     })
   } else {
     response.json({ status: "error", message: auth })
@@ -450,8 +454,8 @@ app.post("/rest/state", function (request, response) {
 })
 
 app.get("/rest/check", function (req, resp) {
-  measure(distance => {
-    resp.json({ "distance": distance });
+  doorState(state => {
+    resp.json({ "state": state });
   })
 })
 
