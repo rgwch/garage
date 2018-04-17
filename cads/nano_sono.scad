@@ -6,20 +6,20 @@
 *********************************************************/
 include <toolbox.scad>
 
-thick=2.1;           // Wanddicke. 
-length=46+2*thick;
+thick=2.1;              // Wanddicke. 
+length=46+2*thick;      // Platzbedarf für den HC-SR 04
 width=21+2*thick;
 depth=17+thick;
-diameter=17;        // Durchmesser der Sender/Empfänger
+diameter=17;            // Durchmesser der Sender/Empfänger
 offset=1.9;             // Abstand Sender/Empfänger von Wand
-steps=100;           // Schritte für Kreisberechnung
-platine_t=1.5;
+steps=100;              // Schritte für Kreisberechnung
+platine_t=1.5;          // Masse der Platine mit dem Arduino
 platine_w=37;
 platine_l=51;
-clearance_floor=7;
-racksize=1.5;
+clearance_floor=7;      // Abstand von der Unterseite für Verdrahtungen etc.
+racksize=1.5;           // Grösse der Führungsschienen für die Platine
 level_y=clearance_floor+thick+platine_t+racksize;
-ledsize=5.4;
+ledsize=5.4;            // Durchmesser der LEDs (inkl. Schrumpfkorrektur)
 
 /*
     Die Box
