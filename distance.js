@@ -1,3 +1,10 @@
+/**
+ * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen
+ * @param  pfio 
+ * @param {*} trigger 
+ * @param {*} echo 
+ * @param {*} callback 
+ */
 module.exports=function(pfio,trigger,echo,callback){
     pfio.digital_write(trigger,1);
     setTimeout(function(){

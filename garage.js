@@ -1,12 +1,14 @@
 /**
  *  Garagentor-Fernbedienung mit Raspberry Pi
- *  (c) 2017 by G. Weirich
+ *  (c) 2017-2018 by G. Weirich
  * 
  * 8.4.2018: Verwende Ulztraschall Sensor HC SR 04 zum feststellen, wo das Garagentor steht anstelle des 
  * Mikroschalters. Damit wird das Problem behoben, dass die Anzeige unzuverlässig ist, weil das Garagentor
  * nicht immer exakt am selben Ort anhält (abhängig von Temperatur, Luftfeuchtigkeit, Gespenstern usw.
  * Wir vereinfachen das: Wenn die Oberkante des Garagentors näher als MIN_DIST vom Sensor ist, betrachten wir es 
  * als offen.)
+ * 15.4.2018: Wechsel vom PiFace auf ein Standard-Relais, das mit onoff geschaltet wird. 
+ * Ausserdem neiue Funktion: Abstandswarner an der Stirnseite der Garage einschalten, wenn das Tor offen ist.
  */
 
 /* eslint-disable no-console */
@@ -14,15 +16,9 @@
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = true
-// Pin des piface für den output. pin 1 ist das linke Relais.
-const output_pin = 1
-// pin für den Schalter, der feststellt, ob das Garagentor offen ist
-//const input_pin = 0
 
 // Pins zur Steuerung des Ultraschallsensors
-const echo=7;
-const trigger=7;
-const MIN_DIST=100;
+const MIN_DIST = 100;
 
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
@@ -40,7 +36,6 @@ const path = require('path')
 const bodyParser = require('body-parser');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 const favicon = require('serve-favicon');
-const measure=require('./distance');
 
 nconf.file('users.json')
 const app = express()
@@ -74,24 +69,22 @@ https.createServer({
   cert: fs.readFileSync('cert.pem')
 }, app).listen(2017)
 
-// Auf einem echten Pi ist pfio auf das piface (https://www.npmjs.com/package/piface) gesetzt
+// Auf einem echten Pi ist Gpio auf onoff (https://www.npmjs.com/package/onoff) gesetzt
 // Auf einem anderen PC wird es einfach mit leeren Funktionen simuliert.
-let pfio
+let Gpio;
 if (realpi) {
-  pfio = require('piface')
-  pfio.init()
+  Gpio = require('onoff').Gpio;
 } else {
-  let pinstate = 1
-  pfio = {
-    digital_write: function (pin, val) {
-
-    },
-    digital_read: function (pin) {
-      pinstate = pinstate ? 0 : 1
-      return pinstate
-    }
+  Gpio = {
+    writeSync: function () { },
+    readSync: function () { return true }
   }
 }
+
+const relay = new Gpio(1, 'out');
+const hc_trigger = new Gpio(2, 'out');
+const hc_echo = new Gpio(3, 'in');
+const arduino = new Gpio(4, 'out');
 
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
@@ -143,7 +136,7 @@ function isLocked(lockinfo) {
  */
 function setLock(user) {
   let now = new Date().getTime()
-  let lockinf = failures[user] ? failures[user] : {"attempt": 0}
+  let lockinf = failures[user] ? failures[user] : { "attempt": 0 }
   lockinf.attempt += 1
   lockinf.time = now
   failures[user] = lockinf
@@ -159,9 +152,9 @@ function operateGarage(done) {
     return false
   } else {
     running = true
-    pfio.digital_write(output_pin, 1)
+    relay.writeSync(1);
     setTimeout(function () {
-      pfio.digital_write(output_pin, 0)
+      relay.writeSync(0)
     }, time_to_push);
     setTimeout(function () {
       running = false
@@ -171,13 +164,37 @@ function operateGarage(done) {
   }
 }
 
+/**
+ * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen. 
+ * Wenn das Tor offen ist, Arduino einschalten, sonst ausschalten.
+ * @param {*} callback: Wird mit der Entfernung in cm aufgerufen.
+ */
+function measure(callback) {
+  hc_trigger.writeSync(1);
+  setTimeout(function () {
+    hc_trigger.writeSync(0);
+    let start = new Date().getTime();
+    while (hc_echo.readSync() != 1) {
+      start = new Date().getTime();
+    }
+    let end = start;
+    while (hc_echo.readSync() != 0) {
+      end = new Date().getTime();
+    }
+    let time = end - start;
+    let distance = time / 2 * 0.034;
+    arduino.writeSync(distance<MIN_DIST ? 1 : 0);
+    callback(distance);
+  }, 15)
+}
+
 
 /***********************************
  * Endpoints
  *********************************/
 
 /**
- * Endpoint für https://adresse:2017/
+ * Endpoint für https://adresse:2015/
  *  Login-Screen anzeigen
  */
 app.get("/", function (request, response) {
@@ -209,7 +226,7 @@ app.post("/*", function (req, resp, next) {
 app.post("/garage/*", function (request, response, next) {
   let user = request.body.username.toLocaleLowerCase()
   if (isLocked(failures[user])) {
-    response.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
+    response.render("answer", { message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen." })
   } else {
     let password = encode(request.body.password)
     let valid = nconf.get(user)
@@ -233,7 +250,7 @@ app.post("/garage/*", function (request, response, next) {
  */
 app.get("/adm/:master/*", function (req, resp, next) {
   if (isLocked(failures.admin)) {
-    resp.render("answer", {message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."})
+    resp.render("answer", { message: "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen." })
   } else {
     const master = encode(req.params.master)
     let stored = nconf.get("admin")
@@ -258,15 +275,15 @@ app.get("/adm/:master/*", function (req, resp, next) {
  Nach dem Login-Screen und erfolgreicher Passworteingabe: Aktuellen Zustand des Tors anzeigen.
  */
 app.post("/garage/login", function (request, response) {
-  measure(pfio,trigger,echo,function(distance){
-    let action=(distance<MIN_DIST) ? "Schliessen" : "Öffnen";
+  measure(distance=> {
+    let action = (distance < MIN_DIST) ? "Schliessen" : "Öffnen";
     response.render("confirm", {
       name: request.body.username,
       pwd: request.body.password,
       status: distance < MIN_DIST ? "offen" : "geschlossen",
       action: action
     })
-  
+
   })
 })
 
@@ -276,11 +293,11 @@ app.post("/garage/login", function (request, response) {
 app.post("/garage/action", function (request, response) {
   console.log("Garage " + request.body.action + ", " + new Date())
   if (!operateGarage(function () {
-      response.render("answer", {
-        message: "Auftrag ausgeführt, " + request.body.username
-      })
-    })) {
-    response.render("answer", {message: "Das Garagentor fährt gerade. Bitte warten."})
+    response.render("answer", {
+      message: "Auftrag ausgeführt, " + request.body.username
+    })
+  })) {
+    response.render("answer", { message: "Das Garagentor fährt gerade. Bitte warten." })
   }
 })
 
@@ -342,9 +359,9 @@ app.post("/garage/chpwd", function (req, resp) {
     nconf.set(req.body.username, encode(req.body.npwd))
     nconf.save()
     console.log(req.body.username + " changed password, " + new Date())
-    resp.render("answer", {message: "Ab sofort gilt das neue Passwort"})
+    resp.render("answer", { message: "Ab sofort gilt das neue Passwort" })
   } else {
-    resp.render("answer", {message: "Das neue Passwort muss mindestens 5 Zeichen lang sein und sowohl Zahlen als auch Buchstaben enthalten."})
+    resp.render("answer", { message: "Das neue Passwort muss mindestens 5 Zeichen lang sein und sowohl Zahlen als auch Buchstaben enthalten." })
   }
 })
 
@@ -354,20 +371,20 @@ app.post("/garage/chpwd", function (req, resp) {
 app.get("/adm/:master/log", function (req, resp) {
   fs.readFile("../forever.log", function (err, data) {
     if (err) {
-      resp.render("answer", {message: err})
+      resp.render("answer", { message: err })
     } else {
       const lines = data.toString().split("\n")
-      resp.render("answer", {message: "<p>" + lines.join("<br>") + "</p>"})
+      resp.render("answer", { message: "<p>" + lines.join("<br>") + "</p>" })
     }
   })
 })
 
-/*********************
+/****************************************************************
  * JSON Rest interface für Anwendung mit reinen Javascript Apps
- ***********************/
+ **************************************************************/
 
 function checkCredentials(request) {
-  if(request.body.username) {
+  if (request.body.username) {
     let user = request.body.username.toLocaleLowerCase()
     if (isLocked(failures[user])) {
       return "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
@@ -375,7 +392,7 @@ function checkCredentials(request) {
       let password = encode(request.body.password)
       let valid = nconf.get(user)
       if (valid && valid === password) {
-	console.log(new Date()+"- userok: "+request.body.username);
+        console.log(new Date() + "- userok: " + request.body.username);
         delete failures[user]
         return ""
       } else {
@@ -383,7 +400,7 @@ function checkCredentials(request) {
         return "Wer bist denn du??? Sperre " + secs + " Sekunden."
       }
     }
-  }else{
+  } else {
     return "Kein Username oder Passwort angegeben."
   }
 }
@@ -392,9 +409,9 @@ function checkCredentials(request) {
  * Script und View holen
  */
 app.get("/rest", function (req, resp) {
-  measure(pfio,trigger,echo,function(distance){
-    let state=(distance<MIN_DIST) ? 1 : 0;
-    resp.render("direct", {state: state});
+  measure(distance => {
+    let state = (distance < MIN_DIST) ? 1 : 0;
+    resp.render("direct", { state: state });
   })
 })
 
@@ -406,15 +423,15 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (!operateGarage(function () {
-        measure(pfio,trigger,echo,function(distance){
-          response.json({"status": "ok", "state": distance<MIN_DIST ? 1:0})
+      measure(distance => {
+        response.json({ "status": "ok", "state": distance < MIN_DIST ? 1 : 0 })
 
-        })
-      })) {
-      response.json({"status": "error", message: "Das Garagentor fährt gerade. Bitte warten"})
+      })
+    })) {
+      response.json({ "status": "error", message: "Das Garagentor fährt gerade. Bitte warten" })
     }
   } else {
-    response.json({status: "error", message: auth})
+    response.json({ status: "error", message: auth })
   }
 })
 
@@ -422,18 +439,19 @@ app.post("/rest/operate", function (request, response) {
  * Status des Garagentors abfragen (0 geschlossen,1 offen)
  */
 app.post("/rest/state", function (request, response) {
-  let auth=checkCredentials(request)
-  if(auth==""){
-    measure(pfio,trigger,echo,function(distance){
-      response.json({"status": "ok", "state": distance<MIN_DIST ? 1:0});
+  let auth = checkCredentials(request)
+  if (auth == "") {
+    measure(distance => {
+      response.json({ "status": "ok", "state": distance < MIN_DIST ? 1 : 0 });
     })
-  }else{
-    response.json({status: "error",message: auth})
+  } else {
+    response.json({ status: "error", message: auth })
   }
 })
 
-app.get("/rest/check",function(req,resp){
-  measure(pfio,trigger,echo,function(distance){
-    resp.json({"distance":distance});
+app.get("/rest/check", function (req, resp) {
+  measure(distance => {
+    resp.json({ "distance": distance });
   })
 })
+

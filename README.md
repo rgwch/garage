@@ -1,11 +1,23 @@
 # garage
 
 Garagentoröffner per Raspberry Pi mit Relaisausgang und NodeJS-Express Server.
+Der Server lässt sich per WebApp bedienen. Der Zustand des Tors (offen/zu) wird mit
+einem Ultraschall-Sensor bestimmt. Wenn das Tor offen ist, wird ein weiterer Entfernungsmesser
+eingeschaltet, der als Abstandswarner an der Stirnseite dient.
 
 ## Hardware
 
 Raspberry Pi B+, 2 oder 3.
-PiFace
+Relais oder Optokoppler
+2 HC-SR04 oder HC-SR05 Ultraschall-Sensoren
+1 Arduino Nano
+3 Leuchtdioden grün/gelb/rot für Abstandswarner
+1 Transistor BC-347 o.Ae.
+3 Widerstände 220 Ohm
+1 Widerstand 1.5 kOhm
+1 Netzteil für Raspberry Pi (Der Arduino wird über den Raspberry versorgt)
+
+3D-Drucker für die Gehäuse.
 
 ## Software
 
