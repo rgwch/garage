@@ -6,7 +6,7 @@
 *********************************************************/
 include <toolbox.scad>
 
-thick=2.1;              // Wanddicke. 
+thick=1.8;              // Wanddicke. 
 length=46+2*thick;      // Platzbedarf für den HC-SR 04
 width=21+2*thick;
 depth=17+thick;
@@ -14,9 +14,10 @@ diameter=17;            // Durchmesser der Sender/Empfänger
 offset=1.9;             // Abstand Sender/Empfänger von Wand
 steps=100;              // Schritte für Kreisberechnung
 platine_t=1.5;          // Masse der Platine mit dem Arduino
-platine_w=37;
+platine_w=38;
 platine_l=51;
-clearance_floor=7;      // Abstand von der Unterseite für Verdrahtungen etc.
+height=40;
+clearance_floor=10;      // Abstand von der Unterseite für Verdrahtungen etc.
 racksize=1.5;           // Grösse der Führungsschienen für die Platine
 level_y=clearance_floor+thick+platine_t+racksize;
 ledsize=5.4;            // Durchmesser der LEDs (inkl. Schrumpfkorrektur)
@@ -26,7 +27,7 @@ ledsize=5.4;            // Durchmesser der LEDs (inkl. Schrumpfkorrektur)
 */    
 union(){
     difference(){
-         roundedBox([platine_l,40,platine_w+thick],3,thick);  
+         roundedBox([platine_l,height,platine_w+thick],3,thick);  
          translate([
                 diameter/2+offset+thick,
                 diameter/2+center(width,diameter)+level_y+platine_t,
@@ -41,6 +42,8 @@ union(){
         led(ledoffs);
         led(ledspace+ledoffs);
         led(2*ledspace+ledoffs);
+        buchse(platine_w-2.8-8);
+        buchse(platine_w-2.8-20);
     }
 
     rack([thick,clearance_floor+thick,thick]);
@@ -52,26 +55,43 @@ union(){
 */
 union(){
         difference(){
-            translate([0,-(platine_w+10),0]){
-                roundedCover([platine_l,platine_w,0],3,thick);
+            translate([0,-(height+10),0]){
+                roundedCover([platine_l,height,0],3,thick);
             }
-            // Kabel-Durchführung
-            translate([10,-(platine_w+10),-5]){
+            /* Kabel-Durchführung
+            translate([10,-(height+10),-5]){
                  cube([9,4,10]);
             }
+            */
         }
+        translate([center(platine_l,10)+thick,thick-(height+10),2*thick]){
+            cube([10,1.8,3]);
+            translate([0,height-thick,0]) cube([10,1.8,3]);
+        }
+        translate([thick,thick-(height+10)+center(height,10),2*thick]){
+            cube([1.8,10,3]);
+            translate([platine_l-thick,0,0]) cube([1.8,10,3]);
+       
+        }
+        
     
 }
 module led(x){
-        translate([x-thick,platine_w,2*platine_w/3])
+        translate([x-thick,platine_w,3*platine_w/4])
             rotate([0,90,90])
-                cylinder(r=ledsize/2,h=10,$fn=50);           
+                cylinder(r=ledsize/2,h=10,$fn=steps);           
 
 }
     
+module buchse(x){
+    translate([-5,thick+5.2,thick+4+x])
+        rotate([0,90,0])
+            cylinder(r=4.1,h=10,$fn=steps);
+    
+}
 
 module rack(pos){
 translate(pos) 
-    cube([racksize,racksize,platine_w]);
+    cube([racksize,racksize,platine_w-thick]);
 
 }
