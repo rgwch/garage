@@ -17,6 +17,12 @@
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = true
 
+// Pin-Definitionen
+const GPIO_GARAGE=14;
+const GPIO_ARDUINO=15;
+const GPIO_ECHO=23;
+const GPIO_TRIGGER=24
+
 // Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
 const MAX_DISTANCE = 100;
 
@@ -34,6 +40,7 @@ const nconf = require('nconf')
 const hash = require('crypto-js/sha256')
 const path = require('path')
 const bodyParser = require('body-parser');
+const us=require('microseconds');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 const favicon = require('serve-favicon');
 
@@ -81,10 +88,10 @@ if (realpi) {
   }
 }
 
-const relay = new Gpio(1, 'out');
-const hc_trigger = new Gpio(2, 'out');
-const hc_echo = new Gpio(3, 'in');
-const arduino = new Gpio(4, 'out');
+const relay = new Gpio(GPIO_GARAGE, 'out');
+const hc_trigger = new Gpio(GPIO_TRIGGER, 'out');
+const hc_echo = new Gpio(GPIO_ECHO, 'in');
+const arduino = new Gpio(GPIO_ARDUINO, 'out');
 
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
@@ -173,13 +180,13 @@ function doorState(callback) {
   hc_trigger.writeSync(1);
   setTimeout(function () {
     hc_trigger.writeSync(0);
-    let start = new Date().getTime();
+    let start = us.now();
     while (hc_echo.readSync() != 1) {
-      start = new Date().getTime();
+      start = us.now();
     }
     let end = start;
     while (hc_echo.readSync() != 0) {
-      end = new Date().getTime();
+      end = us.now();
     }
     let time = end - start;
     let distance = time / 2 * 0.034;
@@ -189,7 +196,7 @@ function doorState(callback) {
     }
     arduino.writeSync(result);
     callback(result);
-  }, 15)
+  }, 1)
 }
 
 
