@@ -16,12 +16,13 @@
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = true
+const debug = true;
 
 // Pin-Definitionen
-const GPIO_GARAGE=14;
-const GPIO_ARDUINO=15;
-const GPIO_ECHO=23;
-const GPIO_TRIGGER=24
+const GPIO_GARAGE = 14;
+const GPIO_ARDUINO = 15;
+const GPIO_ECHO = 23;
+const GPIO_TRIGGER = 24
 
 // Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
 const MAX_DISTANCE = 100;
@@ -40,7 +41,7 @@ const nconf = require('nconf')
 const hash = require('crypto-js/sha256')
 const path = require('path')
 const bodyParser = require('body-parser');
-const us=require('microseconds');
+const us = require('microseconds');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 const favicon = require('serve-favicon');
 
@@ -177,40 +178,55 @@ function operateGarage(done) {
  * @param callback: Wird mit true für offen und false für geschlossen aufgerufen.
  */
 function doorState(callback) {
+  let prep;
+  let failed = false;
   hc_trigger.writeSync(1);
-	console.log("set trigger high");
-	let prep=us.now();
-  setTimeout(function () {
-	console.log("set trigger low after "+(us.now()-prep)+" us");
+  if (debug) {
+    console.log("set trigger high");
+    prep = us.now();
+  }
+  setTimeout(() => {
+    if (debug) {
+      console.log("set trigger low after " + (us.now() - prep) + " us");
+    }
     hc_trigger.writeSync(0);
     let start = us.now();
-	let failure=start;
+    let failure = start;
     while (hc_echo.readSync() != 1) {
       start = us.now();
-	if(start-failure>100000){
-	callback({error: "no begin",state: -1});
-	break;	
-	}
+      if (start - failure > 100000) {
+        callback({ status: "error", message: "no begin", state: -1 });
+        failed = true;
+        break;
+      }
     }
-    let end = start;
-	failure=end;
-    while (hc_echo.readSync() != 0) {
-      end = us.now();
-if(end-failure>200000){
-	callback({error: "no echo", state: -2});
-	break;
-}
+    if (!failed) {
+      let end = start;
+      failure = end;
+      while (hc_echo.readSync() != 0) {
+        end = us.now();
+        if (end - failure > 200000) {
+          callback({ status: "error", message: "no echo", state: -2 });
+          failed = true;
+          break;
+        }
+      }
+      if (!failed) {
+        let time = end - start;
+        let distance = time / 2 * 0.034;
+        if (debug) {
+          console.log("start: " + start + ", end: " + end);
+          console.log("distance: " + distance);
+        }
+        let result = {
+          status: "ok",
+          distance: distance,
+          open: distance < MAX_DISTANCE ? true : false
+        }
+        arduino.writeSync(result);
+        callback(result);
+      }
     }
-    let time = end - start;
-console.log("start: "+start+", end: "+end);
-    let distance = time / 2 * 0.034;
-console.log("distance: "+distance);
-    let result={
-      distance:distance,
-      open: distance<MAX_DISTANCE ? true : false
-    }
-    arduino.writeSync(result);
-    callback(result);
   }, 15)
 }
 
@@ -301,7 +317,7 @@ app.get("/adm/:master/*", function (req, resp, next) {
  Nach dem Login-Screen und erfolgreicher Passworteingabe: Aktuellen Zustand des Tors anzeigen.
  */
 app.post("/garage/login", function (request, response) {
-  doorState(doorstate=> {
+  doorState(doorstate => {
     let action = doorstate.open ? "Schliessen" : "Öffnen";
     response.render("confirm", {
       name: request.body.username,
@@ -476,7 +492,7 @@ app.post("/rest/state", function (request, response) {
 })
 
 app.get("/rest/check", function (req, resp) {
-	console.log("check doorstate");
+  console.log("check doorstate");
   doorState(state => {
     resp.json({ "state": state });
   })
