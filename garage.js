@@ -178,25 +178,40 @@ function operateGarage(done) {
  */
 function doorState(callback) {
   hc_trigger.writeSync(1);
+	console.log("set trigger high");
+	let prep=us.now();
   setTimeout(function () {
+	console.log("set trigger low after "+(us.now()-prep)+" us");
     hc_trigger.writeSync(0);
     let start = us.now();
+	let failure=start;
     while (hc_echo.readSync() != 1) {
       start = us.now();
+	if(start-failure>100000){
+	callback({error: "no begin",state: -1});
+	break;	
+	}
     }
     let end = start;
+	failure=end;
     while (hc_echo.readSync() != 0) {
       end = us.now();
+if(end-failure>200000){
+	callback({error: "no echo", state: -2});
+	break;
+}
     }
     let time = end - start;
+console.log("start: "+start+", end: "+end);
     let distance = time / 2 * 0.034;
+console.log("distance: "+distance);
     let result={
       distance:distance,
       open: distance<MAX_DISTANCE ? true : false
     }
     arduino.writeSync(result);
     callback(result);
-  }, 1)
+  }, 15)
 }
 
 
@@ -461,6 +476,7 @@ app.post("/rest/state", function (request, response) {
 })
 
 app.get("/rest/check", function (req, resp) {
+	console.log("check doorstate");
   doorState(state => {
     resp.json({ "state": state });
   })
