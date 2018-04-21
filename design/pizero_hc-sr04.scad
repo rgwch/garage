@@ -16,6 +16,7 @@ support_height=2;
 pillar_radius=2.5/2;
 pillar_height=4;
 
+hc05_length=46;
 
 
 // Raspberry
@@ -36,6 +37,8 @@ union(){
     pillar(spare_length+base_length-hole_offset,base_width+spare_width-hole_offset);
     translate([0,0,height+2*thick])
         hc05();
+    translate([0,-base_width-10,0])
+        inlay();
 }
     
 module slot(x,l){
@@ -56,7 +59,7 @@ module pillar(x,y){
 // hc-05-Teil
 
 module hc05(){
-    hc05_length=46;
+  
     hc05_width=21;
     hc05_depth=17;
     hc05_diameter=17;
@@ -80,4 +83,21 @@ module hc05(){
             cube([base_length+2*spare_length,base_width,10]);
         
     }
+}
+
+// Zwischenboden
+module inlay(){
+    difference(){
+        cube([base_length+2*spare_length-0.5,base_width+2*spare_width-0.5,thick]);
+      translate([1,2,-thick-4])
+        cube([hc05_length,10,thick+10]);
+      translate([2,15,thick-4])
+        cube([base_length,2,thick+10]);
+      translate([2,20,thick-4])
+        cube([base_length,2,thick+10]);
+      translate([2,25,thick-4])
+        cube([base_length,2,thick+10]);
+
+    }
+    
 }
