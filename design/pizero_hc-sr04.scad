@@ -23,6 +23,7 @@ hc05_length=46;
 union(){
     difference(){
         box(inner_size=[base_length+2*spare_length,base_width+2*spare_width,height],radius=corner_radius,thick=thick);
+    // Stromanschluss    
     translate([spare_length+48,-5-thick,support_height])    
         cube([10,10,6]);    
     slot(19,20);
@@ -92,12 +93,13 @@ module inlay(){
       translate([1,2,-thick-4])
         cube([hc05_length,10,thick+10]);
       translate([2,15,thick-4])
-        cube([base_length,2,thick+10]);
+        cube([base_length,1.5,thick+10]);
       translate([2,20,thick-4])
-        cube([base_length,2,thick+10]);
+        cube([base_length,1.5,thick+10]);
       translate([2,25,thick-4])
-        cube([base_length,2,thick+10]);
-
+        cube([base_length,1.5,thick+10]);
+      translate([2,30,thick-4])
+        cube([base_length,1.5,thick+10]);
     }
     
 }
