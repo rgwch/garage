@@ -16,7 +16,7 @@
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = true
-const debug = true;
+const debug = false;
 
 // Pin-Definitionen
 const GPIO_GARAGE = 18;
@@ -491,10 +491,23 @@ app.post("/rest/state", function (request, response) {
   }
 })
 
-app.get("/rest/check", function (req, resp) {
+
+/** Remove functions below in productive code */
+app.get("/rest/checkecho", function (req, resp) {
   console.log("check doorstate");
   doorState(state => {
     resp.json({ "state": state });
   })
 })
+
+app.get("/rest/checkrelais",function(rea,resp){
+	console.log("check relay");
+	if(operateGarage(()=>{
+		resp.json({status: "ok"});		
+})==false){
+		resp.json("status: running");
+	}
+
+});
+
 
