@@ -2,7 +2,7 @@
  *  Garagentor-Fernbedienung mit Raspberry Pi
  *  (c) 2017-2018 by G. Weirich
  * 
- * 8.4.2018: Verwende Ulztraschall Sensor HC SR 04 zum feststellen, wo das Garagentor steht anstelle des 
+ * 8.4.2018: Verwende Ultraschall Sensor HC SR 04 zum feststellen, wo das Garagentor steht anstelle des 
  * Mikroschalters. Damit wird das Problem behoben, dass die Anzeige unzuverlässig ist, weil das Garagentor
  * nicht immer exakt am selben Ort anhält (abhängig von Temperatur, Luftfeuchtigkeit, Gespenstern usw.
  * Wir vereinfachen das: Wenn die Oberkante des Garagentors näher als MIN_DIST vom Sensor ist, betrachten wir es 
@@ -175,11 +175,20 @@ function operateGarage(done) {
 /**
  * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen. 
  * Wenn das Tor offen ist, Arduino einschalten, sonst ausschalten.
- * @param callback: Wird mit true für offen und false für geschlossen aufgerufen.
+ * @param callback: Wird mit einer state-Meldung:
+ * {
+ *    state: "ok"|"error",
+ *    distance: (distanz in cm),
+ *    open: (true wenn das Tor offen ist) ,
+ *    message: (Fehlermeldung bei Fehler)
+ * }
  */
 function doorState(callback) {
   let prep;
   let failed = false;
+  hc_trigger.writeSync(0); // Startzustand standardisieren
+
+  // trigger muss mindestens 15us high sein. Wir geben ihm 5ms
   hc_trigger.writeSync(1);
   if (debug) {
     console.log("set trigger high");
@@ -189,9 +198,11 @@ function doorState(callback) {
     if (debug) {
       console.log("set trigger low after " + (us.now() - prep) + " us");
     }
+    // Wenn dann Trigger auf LOW gesetzt wird, wird ein Ultrachall-Impuls abgeschickt.
     hc_trigger.writeSync(0);
     let start = us.now();
     let failure = start;
+    // Danach setzt der Sensor ECHO  auf HIGH
     while (hc_echo.readSync() != 1) {
       start = us.now();
       if (start - failure > 100000) {
@@ -203,6 +214,7 @@ function doorState(callback) {
     if (!failed) {
       let end = start;
       failure = end;
+      // Wenn das Echo empfangen wird, geht ECHO auf LOW.
       while (hc_echo.readSync() != 0) {
         end = us.now();
         if (end - failure > 200000) {
@@ -212,6 +224,7 @@ function doorState(callback) {
         }
       }
       if (!failed) {
+        // Aus der Zeit zwischen ECHO-HIGH und ECHO-LOW errechnen wir die Distanz
         let time = end - start;
         let distance = time / 2 * 0.034;
         if (debug) {
@@ -223,11 +236,13 @@ function doorState(callback) {
           distance: distance,
           open: distance < MAX_DISTANCE ? true : false
         }
+        // Wenn das Tor offen ist, schalten wir den Arduino an (Distanzwarner an der Stirnwand)
         arduino.writeSync(result);
+        // Und melden das Resultat an den client.
         callback(result);
       }
     }
-  }, 15)
+  }, 5)
 }
 
 

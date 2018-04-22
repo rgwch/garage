@@ -63,10 +63,10 @@ union(){
         }
     }
     // Stützen
-    raspi_pillar(spare_length+hole_offset,spare_width+hole_offset);
+    raspi_pillar(spare_length+hole_offset+0.3,spare_width+hole_offset);
     raspi_pillar(spare_length+base_length-hole_offset,spare_width+hole_offset);
-    raspi_pillar(spare_length+hole_offset+0.2,base_width+spare_width-hole_offset);
-    raspi_pillar(spare_length+base_length-hole_offset+0.2,base_width+spare_width-hole_offset);
+    raspi_pillar(spare_length+hole_offset+0.3,base_width+spare_width-hole_offset);
+    raspi_pillar(spare_length+base_length-hole_offset,base_width+spare_width-hole_offset);
     
     inlay_pillar(0,0);
     inlay_pillar(0,base_width+2*spare_width-2);
