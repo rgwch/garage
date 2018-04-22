@@ -21,8 +21,9 @@ const debug = true;
 // Pin-Definitionen
 const GPIO_GARAGE = 14;
 const GPIO_ARDUINO = 15;
-const GPIO_ECHO = 23;
-const GPIO_TRIGGER = 24
+const GPIO_CONV=18;
+const GPIO_ECHO = 2;
+const GPIO_TRIGGER = 3;
 
 // Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
 const MAX_DISTANCE = 100;
@@ -93,7 +94,9 @@ const relay = new Gpio(GPIO_GARAGE, 'out');
 const hc_trigger = new Gpio(GPIO_TRIGGER, 'out');
 const hc_echo = new Gpio(GPIO_ECHO, 'in');
 const arduino = new Gpio(GPIO_ARDUINO, 'out');
+const converter=new Gpio(GPIO_CONV,'out');
 
+converter.writeSync(1);
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
  * pug benötigt wird, um sie nach HTML zu konvertieren.
@@ -491,10 +494,23 @@ app.post("/rest/state", function (request, response) {
   }
 })
 
-app.get("/rest/check", function (req, resp) {
+
+/** Remove functions below in productive code */
+app.get("/rest/checkecho", function (req, resp) {
   console.log("check doorstate");
   doorState(state => {
     resp.json({ "state": state });
   })
 })
+
+app.get("/rest/checkrelais",function(rea,resp){
+	console.log("check relay");
+	if(operateGarage(()=>{
+		resp.json({status: "ok"});		
+})==false){
+		resp.json("status: running");
+	}
+
+});
+
 
