@@ -19,10 +19,10 @@ const realpi = true
 const debug = true;
 
 // Pin-Definitionen
-const GPIO_GARAGE = 14;
-const GPIO_ARDUINO = 15;
-const GPIO_ECHO = 23;
-const GPIO_TRIGGER = 24
+const GPIO_GARAGE = 18;
+const GPIO_ARDUINO = 23;
+const GPIO_ECHO = 15;
+const GPIO_TRIGGER = 14;
 
 // Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
 const MAX_DISTANCE = 100;
