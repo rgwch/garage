@@ -11,7 +11,7 @@ spare_width=2;
 corner_radius=3;
 hole_offset=3.5;
 raspi_height=15;
-hc05_height=22;
+hc05_height=23;
 total_height=raspi_height+hc05_height;
 support_radius=3.5;
 support_height=2;
@@ -56,12 +56,16 @@ union(){
                 cylinder(r=hc05_diameter/2,h=hc05_depth+5,$fn=steps);
         }
     // Öffnung für Stecker zu Arduino
-    rotate([90,0,90]){
-        translate([base_width-20,raspi_height+hc05_height-10,base_length])
-            cylinder(r=4.1,h=10,$fn=steps);
-    
-        }
+        rotate([90,0,90]){
+            translate([base_width-23,raspi_height+10,base_length])
+                cylinder(r=4.1,h=10,$fn=steps);
+        
+            }
+        translate([base_length+spare_length,15,raspi_height+1.5])
+               cube([10,17.2,14.3]);
     }
+    
+    
     // Stützen
     raspi_pillar(spare_length+hole_offset+0.3,spare_width+hole_offset);
     raspi_pillar(spare_length+base_length-hole_offset,spare_width+hole_offset);
@@ -73,15 +77,6 @@ union(){
     inlay_pillar(base_length+2*spare_length-2,0);
     inlay_pillar(base_length+2*spare_length-2,base_width+2*spare_width-2);
     
-    // Fixierungen
-    /*
-    h=total_height-hc05_height/2-hc05_diameter/2;
-    translate([-2,base_width+2*spare_width+thick-fixation_depth,h])
-        fixation();
-    translate([base_length+2*spare_length+2,base_width+2*spare_width+thick,h])
-        rotate([0,0,180])
-            fixation();
-    */
     translate([-fixation_size,
         base_width+fixation_size/2+thick,
         -thick]) fixation();
@@ -97,7 +92,7 @@ translate([0,-base_width-spare_width-4,-thick])
 // Deckel
 translate([0,base_width+spare_width+2*thick+3]){
     difference(){
-        cover(inner_size=[base_length+2*spare_length,base_width+2*spare_width,raspi_height+     hc05_height], thick=thick, latch_y=5);
+        cover(inner_size=[base_length+2*spare_length,base_width+2*spare_width,raspi_height+     hc05_height], thick=thick, latch_y=5, latch_x=2);
      for(i=[4:5:54]) slot(i);   
         
    }
@@ -111,8 +106,10 @@ module slot(x){
 
 module raspi_pillar(x,y){
     translate([x,y,0]){
-        cylinder(r=support_radius,h=support_height,$fn=steps);
-        cylinder(r=pillar_radius,h=pillar_height,$fn=steps);
+        union(){
+            cylinder(r=support_radius,h=support_height,$fn=steps);
+            cylinder(r=pillar_radius,h=pillar_height,$fn=steps);
+        }
     }
     
 }
@@ -127,20 +124,10 @@ module inlay(){
     difference(){
         cube([base_length+2*spare_length-0.6,base_width+2*spare_width-0.3,1.5]);
       translate([5,2,-thick-4])
-        cube([35,20,thick+10]);
-      translate([5,23.5,thick-4])
-        cube([base_length-5,8,thick+10]);
+        cube([35,19,thick+10]);
+      translate([5,24.5,thick-4])
+        cube([base_length-5,12,thick+10]);
   
-        /*
-      translate([2,10,thick-4])
-        cube([base_length,1.5,thick+10]);
-      translate([2,14,thick-4])
-        cube([base_length,1.5,thick+10]);
-      translate([2,18,thick-4])
-        cube([base_length,1.5,thick+10]);
-      translate([2,21.5,thick-4])
-        cube([base_length,8,thick+10]);
-        */
     }
     
 }
@@ -153,15 +140,4 @@ module fixation(x){
                 translate([fixation_size/2,fixation_depth/2,-30])
                     cylinder(d=screw,h=50,$fn=steps);
     }
-    /*
-    cube([1.5,fixation_depth,fixation_size*2-1]);    
-    translate([-2.8,fixation_depth,fixation_size-0.5]){
-        rotate([90,0,0])
-            difference(){
-                cylinder(r=fixation_size,h=10,$fn=50);
-                translate([0,0,-4])
-                    cylinder(d=screw,h=20,$fn=steps);
-       }
-    }   
-   */ 
 }

@@ -14,6 +14,7 @@
     "express": "^4.15.2",
     "microseconds": "^0.1.0",
     "nconf": "^0.8.4",
+    "node-gyp": "^3.6.2",
     "onoff": "^3.0.2",
     "pug": "^2.0.0-beta11",
     "rpio": "^0.9.16",

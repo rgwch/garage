@@ -187,7 +187,8 @@ function doorState(callback) {
   let prep;
   let failed = false;
   hc_trigger.writeSync(0); // Startzustand standardisieren
-
+  
+  
   // trigger muss mindestens 15us high sein. Wir geben ihm 5ms
   hc_trigger.writeSync(1);
   if (debug) {
@@ -245,6 +246,13 @@ function doorState(callback) {
   }, 5)
 }
 
+function triggerLow(){
+  hc_trigger.writeSync(0);
+}
+
+function triggerHigh(){
+  hc_trigger.writeSync(1);
+}
 
 /***********************************
  * Endpoints

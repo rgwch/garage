@@ -20,25 +20,30 @@ module box(inner_size,thick){
     Deckel für Box
 */
 module cover(inner_size,thick,latch_x=0, latch_y=0){
-    translate([-thick,-thick,-thick]){
-        cube([inner_size.x+2*thick,  inner_size.y+2*thick, thick]);
-        translate([thick,thick,thick]){
-            cube([inner_size.x-0.1,inner_size.y-0.2,1.5*thick]);
-            if(latch_x>0){
-                translate([center(inner_size.x,inner_size.x/3),0,1.5*thick]){
-                    cube([inner_size.x/3,thick*0.8,latch_x]);
+    union(){
+        translate([-thick,-thick,-thick]){
+            cube([inner_size.x+2*thick,  inner_size.y+2*thick, thick]);
+            translate([thick,thick,thick]){
+                cube([inner_size.x-0.1,inner_size.y-0.2,1.5*thick]);
+                if(latch_x>0){
+                    translate([center(inner_size.x,inner_size.x/3),0,1.5*thick]){
+                        cube([inner_size.x/3,thick*0.9,latch_x]);
+                    }
+                    translate([center(inner_size.x,inner_size.x/3),inner_size.y-thick,1.5*thick]){
+                        cube([inner_size.x/3,thick*0.9,latch_x]);
+                    }
+                }
+                if(latch_y>0){
+                    translate([0,center(inner_size.y,inner_size.y/3),1.5*thick]){
+                        cube([thick*0.9,inner_size.y/3,latch_y]);             
+                    }
+                    translate([inner_size.x-thick,center(inner_size.y,inner_size.y/3),1.5*thick])
+                        cube([thick*0.9,inner_size.y/3,latch_y]);             
+                    
                 }
             }
-            if(latch_y>0){
-                translate([0,center(inner_size.y,inner_size.y/3),1.5*thick]){
-                    cube([thick*0.8,inner_size.y/3,latch_y]);             
-                }
-                translate([inner_size.x-thick,center(inner_size.y,inner_size.y/3),1.5*thick])
-                    cube([thick*0.8,inner_size.y/3,latch_y]);             
-                
-            }
-        }
-     }
+         }
+    }
 }
 /*
     Viereckige Dose mit gerundeten Ecken
