@@ -104,3 +104,10 @@ module roundedCube(size, radius,steps=50)
 
 }
 
+
+module slot(x,w){   
+    translate([x,4,-5])
+      rotate(-25)
+    cube([1.5,w,10]);
+}
+
