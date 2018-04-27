@@ -5,6 +5,7 @@ steps=100;
 
 width=39.2;
 length=50.8;
+spare=1;
 height=23;
 hole_offset=1.38;
 hole_diameter=2.5;
@@ -19,33 +20,42 @@ fixation_depth=8;
   
 
 union(){
+    fl=length+2*spare;
+    fw=width+2*spare;
+    offset=[spare,spare,0];
+    
     difference(){
-        box([length,width,height],thick=thick);
-        for(i=[8:5:30]) slot(i,width-5);
-        translate([-5,width/2,height-8])
+        box([fl,fw,height],thick=thick);
+        // translate([off_l1,off_w1,0])
+            //box([length,width,height],thick=thick)
+        for(i=[8:5:30]) slot(i,width-5,offset=offset);
+        /*    
+        translate([-5,fw/2,height-8])
             rotate([0,90,0])
                 cylinder(r=4,h=10);
-        translate([length-5,width/2,height-8])
+        translate([fl-5,fw/2,height-8])
             rotate([0,90,0])
                 cylinder(r=4,h=10);
-        
+        */
+        translate([-5,offset.y+thick,support_height+4])
+            cube([10,width-2*thick,height]);
+        translate([fl-5,center(fw,15),height-5])
+            cube([10,15,height]);
         }
-        pc=hole_offset+hole_diameter/2;
-        pillar(pc,pc);
-        pillar(length-pc,pc);
-        pillar(pc,width-pc);
-        pillar(length-pc,width-pc);
-       translate([-fixation_size, width+thick,
-        -thick]) fixation();
-    translate([length,width+thick,
-        -thick]) fixation();
+    pc=hole_offset+hole_diameter/2;
+    pillar(offset.x+pc,offset.y+pc);
+    pillar(fl-offset.x-pc,offset.y+pc);
+    pillar(offset.x+pc,fw-offset.y-pc);
+    pillar(fl-offset.x-pc,fw-offset.y-pc);
+    translate([-fixation_size, width+thick+2*spare,-thick]) fixation();
+    translate([length+2*spare,width+thick+2*spare,-thick]) fixation();
 }
 
 // Deckel
-translate([0,width+2*thick+3]){
+translate([0,width+2*spare+2*thick+3]){
     difference(){
-        cover(inner_size=[length,width,3], thick=thick, latch_y=5, latch_x=4);
-     for(i=[10:5:25]) slot(i,width-5);   
+        cover(inner_size=[length+2*spare,width+2*spare,3], thick=thick, latch_x=5);
+     for(i=[10:5:25]) slot(i,width-5,offset=[spare,spare,0]);   
         
    }
 }
