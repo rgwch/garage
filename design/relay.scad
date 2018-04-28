@@ -37,10 +37,12 @@ union(){
             rotate([0,90,0])
                 cylinder(r=4,h=10);
         */
-        translate([-5,offset.y+thick,support_height+4])
-            cube([10,width-2*thick,height]);
-        translate([fl-5,center(fw,15),height-5])
+        translate([-5,5,height-5])
             cube([10,15,height]);
+         translate([fl-5,offset.y+thick,support_height+4])                 
+            cube([10,width-2*thick,height]);
+            
+
         }
     pc=hole_offset+hole_diameter/2;
     pillar(offset.x+pc,offset.y+pc);
