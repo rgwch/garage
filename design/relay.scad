@@ -1,3 +1,8 @@
+/*******************
+Gehäuse für ein Doppel-Relais Modul wie dieses:
+https://www.diy-shop.ch/de/relais/152-2-kanal-5v-relais-modul.html
+********************/
+
 include  <toolbox_1.1.scad>
 
 thick=0.9;
@@ -26,23 +31,12 @@ union(){
     
     difference(){
         box([fl,fw,height],thick=thick);
-        // translate([off_l1,off_w1,0])
-            //box([length,width,height],thick=thick)
-        for(i=[8:5:30]) slot(i,width-5,offset=offset);
-        /*    
-        translate([-5,fw/2,height-8])
-            rotate([0,90,0])
-                cylinder(r=4,h=10);
-        translate([fl-5,fw/2,height-8])
-            rotate([0,90,0])
-                cylinder(r=4,h=10);
-        */
         translate([-5,5,height-5])
             cube([10,15,height]);
          translate([fl-5,offset.y+thick,support_height+4])                 
             cube([10,width-2*thick,height]);
-            
-
+         for(i=[6:5:30]) slot(i,width-5,offset=offset);
+       
         }
     pc=hole_offset+hole_diameter/2;
     pillar(offset.x+pc,offset.y+pc);
@@ -57,11 +51,15 @@ union(){
 translate([0,width+2*spare+2*thick+3]){
     difference(){
         cover(inner_size=[length+2*spare,width+2*spare,3], thick=thick, latch_x=5);
-     for(i=[10:5:25]) slot(i,width-5,offset=[spare,spare,0]);   
-        
-   }
+        for(i=[10:5:25]) slot(i,width-5,offset=[spare,spare,0]);   
+        }
+     translate([length+2*spare-thick,thick,thick])
+         cube([0.9,width,height/2]);
+     translate([0,thick,thick])
+            cube([0.9,width/2,7]);
 }
 
+// Tragstifte
 module pillar(x,y){
  translate([x,y,0]){
         union(){
@@ -71,6 +69,7 @@ module pillar(x,y){
     }
 }
 
+// Befestigungen
 module fixation(x){
     difference(){
         rotate([90,0,0])
