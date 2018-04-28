@@ -53,7 +53,7 @@ union(){
     translate([spare_length+49.5,-5-thick,support_height+1])    
         cube([10,10,5]);  
     // Kühlschlitze im Boden    
-    for(i=[10:5:45])  slot(i);  
+    for(i=[10:5:45])  slot(i,base_width);  
 
     // Öffnungen für Ultraschall-Sensor
     rotate([90,0,0]){
@@ -107,17 +107,11 @@ translate([0,-base_width-spare_width-4,-thick])
 translate([0,base_width+spare_width+2*thick+3]){
     difference(){
         cover(inner_size=[base_length+2*spare_length,base_width+2*spare_width,raspi_height+     hc05_height], thick=thick, latch_y=5, latch_x=2);
-     for(i=[4:5:54]) slot(i);   
+     for(i=[4:5:54]) slot(i,base_width);   
         
    }
 }
 
-// Schräger Kühlungsschlitz
-module slot(x){   
-    translate([x,4,-5])
-      rotate(-25)
-    cube([1.5,base_width,10]);
-}
 
 // Träger mit Führungsstift für den Raspi
 module raspi_pillar(x,y){
