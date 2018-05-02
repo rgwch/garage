@@ -1,29 +1,43 @@
+/****************************************************************************************
+    Gehöuse für einen Raspberry Pi Zero, einen HC-SR-04 oder HC-SR-05 Ultraschall-Sensor
+    ein Relais und eine Steckbuchse.
+    
+    Material: PLA 1.75mm
+    Schichtdicke: 0.3mm
+    Infill: 20%
+    Support: Nein
+****************************************************************************************/
 include  <toolbox_1.1.scad>
 
+// Wanddicke global 
 thick=1.2;
+
+// Stufenzahl für runde Strukturen
 steps=100;
 
 // Raspberry-Teil
-base_length=65.4;
-spare_length=3;
-base_width=30;
-spare_width=2;
-corner_radius=3;
-hole_offset=3.5;
-raspi_height=15;
-hc05_height=23;
+base_length=65.4;   // Länge der Platine
+spare_length=3;     // Reserve Länge
+base_width=30;      // Breite der Platine
+spare_width=2;      // Reserve Breite
+corner_radius=3;    // Rundungsradius (nur wenn roundedBox als Basis genommen wird)
+hole_offset=3.5;    // Abstand der Löcher von den Kanten
+raspi_height=15;    // Höhe für die Raspi Platine inkl. Anschlüsse
+hc05_height=23;     // Höhe für den Ulztraschall-Sensor
 total_height=raspi_height+hc05_height;
-support_radius=3.5;
-support_height=2;
-pillar_radius=2.5/2;
-pillar_height=4;
+support_radius=3.5; // Radius der Stützscheiben
+support_height=2;   // Dicker der Stptzscheiben, Bodenfreiheit für den Raspi
+pillar_radius=2.5/2;    // Dicke der Löcher
+pillar_height=4;    // Höhe der Führungsstifte für die RAspi-Halterung
 
-hc05_length=46;
+// HC-SR-05 Teil
+hc05_length=46; 
 hc05_width=21;
 hc05_depth=17;
 hc05_diameter=17;
 hc05_offset=1.9;
-  
+ 
+// Halterungen 
 screw=3;            // Dicke der Schraube
 fixation_size=8;   // Dicke der Halter
 fixation_depth=8;
@@ -39,7 +53,7 @@ union(){
     translate([spare_length+49.5,-5-thick,support_height+1])    
         cube([10,10,5]);  
     // Kühlschlitze im Boden    
-    for(i=[10:5:45])  slot(i);  
+    for(i=[10:5:45])  slot(i,base_width);  
 
     // Öffnungen für Ultraschall-Sensor
     rotate([90,0,0]){
@@ -55,7 +69,7 @@ union(){
                 -thick])
                 cylinder(r=hc05_diameter/2,h=hc05_depth+5,$fn=steps);
         }
-    // Öffnung für Stecker zu Arduino
+    // Öffnung für Steckbuchse
         rotate([90,0,90]){
             translate([base_width-23,raspi_height+10,base_length])
                 cylinder(r=4.1,h=10,$fn=steps);
@@ -93,17 +107,13 @@ translate([0,-base_width-spare_width-4,-thick])
 translate([0,base_width+spare_width+2*thick+3]){
     difference(){
         cover(inner_size=[base_length+2*spare_length,base_width+2*spare_width,raspi_height+     hc05_height], thick=thick, latch_y=5, latch_x=2);
-     for(i=[4:5:54]) slot(i);   
+     for(i=[4:5:54]) slot(i,base_width);   
         
    }
 }
 
-module slot(x){   
-    translate([x,4,-5])
-      rotate(-25)
-    cube([1.5,base_width,10]);
-}
 
+// Träger mit Führungsstift für den Raspi
 module raspi_pillar(x,y){
     translate([x,y,0]){
         union(){
@@ -114,6 +124,7 @@ module raspi_pillar(x,y){
     
 }
 
+// Stütze für Zwischenboden
 module inlay_pillar(x,y){
     translate([x,y,0]) 
         cube([2,2,raspi_height-2]);
@@ -132,6 +143,7 @@ module inlay(){
     
 }
 
+// Halterung mit Öffnung für M3 Schraube
 module fixation(x){
     difference(){
         rotate([90,0,0])
