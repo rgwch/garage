@@ -23,6 +23,8 @@ const GPIO_GARAGE = 18;
 const GPIO_ARDUINO = 23;
 const GPIO_ECHO = 15;
 const GPIO_TRIGGER = 14;
+const ON=0;
+const OFF=1;
 
 // Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
 const MAX_DISTANCE = 100;
@@ -93,6 +95,9 @@ const relay = new Gpio(GPIO_GARAGE, 'out');
 const hc_trigger = new Gpio(GPIO_TRIGGER, 'out');
 const hc_echo = new Gpio(GPIO_ECHO, 'in');
 const arduino = new Gpio(GPIO_ARDUINO, 'out');
+relay.writeSync(OFF);
+arduino.writeSync(OFF);
+
 
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
@@ -160,9 +165,9 @@ function operateGarage(done) {
     return false
   } else {
     running = true
-    relay.writeSync(1);
+    relay.writeSync(ON);
     setTimeout(function () {
-      relay.writeSync(0)
+      relay.writeSync(OFF)
     }, time_to_push);
     setTimeout(function () {
       running = false
@@ -238,7 +243,7 @@ function doorState(callback) {
           open: distance < MAX_DISTANCE ? true : false
         }
         // Wenn das Tor offen ist, schalten wir den Arduino an (Distanzwarner an der Stirnwand)
-        arduino.writeSync(result);
+        arduino.writeSync(result.open ? ON : OFF);
         // Und melden das Resultat an den client.
         callback(result);
       }
@@ -533,4 +538,11 @@ app.get("/rest/checkrelais",function(rea,resp){
 
 });
 
-
+app.get("/rest/checkarduino",(req,resp)=>{
+	console.log("checkarduino");
+	arduino.writeSync(ON);
+	setTimeout(()=>{
+		arduino.writeSync(OFF);
+	resp.json({"status":"ok"});
+	},3000)
+})
