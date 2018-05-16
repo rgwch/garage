@@ -13,7 +13,7 @@
 
 /* eslint-disable no-console*/
 "use strict"
-import {ping} from './measure'
+import * as ping from './measure'
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = true
