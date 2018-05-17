@@ -7,22 +7,28 @@ const sleep=function(ms) {
 }
 
 module.exports= async function ping(trigger, echo) {
-  //const debug = true;
+  const debug = true;
   trigger.writeSync(0); // Startzustand standardisieren
   await sleep(10);
   trigger.writeSync(1);
   // trigger muss mindestens 15us high sein. Wir geben ihm 2ms
   await sleep(2);
   // Wenn dann Trigger auf LOW gesetzt wird, wird ein Ultrachall-Impuls abgeschickt.
-  let start = us.now();
-  let failure = start;
+  if(debug==true){
+    console.log(echo.readSync())
+  }
   trigger.writeSync(0);
   // Der Sensor setzt ECHO  auf HIGH, wenn der Impuls abgeht
   // Wenn allerdings die Distanz zu kurz ist, ist ECHO schon wieder LOW, bevor wir hier sind
   // wir "faken" dann eine 10cm  Distanz.
+  let start = us.now();
+  let failure = start;
   while (echo.readSync() != 1) {
     start = us.now();
     if (start - failure > 10000) {
+      if(debug==true){
+        console.log(start-failure)
+      }
       return ({ status: "ok", distance: 10, message: "too short"});
     }
   }
