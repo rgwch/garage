@@ -177,7 +177,7 @@ function operateGarage(done) {
 }
 
 /**
- * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen. Wir messen drei mal
+ * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen. Wir messen mehrmal
  * und nehmen dann den Median als Resultat.
  * Wenn das Tor offen ist, Arduino einschalten, sonst ausschalten.
  * @param callback: Wird mit einer state-Meldung:
@@ -192,33 +192,19 @@ function operateGarage(done) {
  */
 async function doorState(callback) {
   let measurements = []
-  let num = 0;
-  let now = new Date();
-  let fails = 0;
-  while (num < 3) {
-    let result = await ping(hc_trigger, hc_echo)
-    // Drei gültige Messungen sammeln
-    if (result.status === "ok") {
-      measurements.push(result);
-      num = num + 1;
-    } else {
-      fails = fails + 1;
-      if (fails > 5) {
-        callback(result);
-        break;
-      }
-    }
-
+  const num = 3;  // Zahl der Messungen
+  for (let i = 0; i < num; i++) {
+    measurements.push(ping(hc_trigger, hc_echo));
   }
-  if (fails <= 5) {
-    // Median der drei Messungen ist das Endresultat
-    let sorted = measurements.sort((a, b) => a.distance - b.distance)
-    let result = sorted[1];
+  Promise.all(measurements).then(unsorted => {
+    // Median der Messungen ist das Endresultat
+    let sorted = unsorted.sort((a, b) => a.distance - b.distance)
+    let result = sorted[Math.floor(num/2)];
     result.open = result.distance < MAX_DISTANCE ? true : false
-    result.running=running;
+    result.running = running;
     arduino.writeSync(result.open ? ON : OFF);
     callback(result);
-  }
+  })
 }
 
 
@@ -475,10 +461,10 @@ app.post("/rest/state", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     doorState(state => {
-      if(state.status=="ok"){
+      if (state.status == "ok") {
         response.json({ "status": "ok", "state": state.open ? 1 : 0 });
-      }else{
-        response.json({"status":"error", message: "internal "+state.message});
+      } else {
+        response.json({ "status": "error", message: "internal " + state.message });
       }
     })
   } else {
