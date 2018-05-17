@@ -1,12 +1,12 @@
 const us = require('microseconds');
 
-const sleep=function(ms) {
+const sleep = function (ms) {
   return new Promise(resolve => {
     setTimeout(resolve, ms)
   })
 }
 
-module.exports= async function ping(trigger, echo) {
+module.exports = async function ping(trigger, echo) {
   const debug = true;
   await sleep(10)
   trigger.writeSync(0); // Startzustand standardisieren
@@ -19,17 +19,17 @@ module.exports= async function ping(trigger, echo) {
   // Der Sensor setzt ECHO  auf HIGH, wenn der Impuls abgeht
   // Wenn allerdings die Distanz zu kurz ist, ist ECHO schon wieder LOW, bevor wir hier sind
   // wir "faken" dann eine 10cm  Distanz.
-  
-   let start = us.now();
+
+  let start = us.now();
   let failure = start;
 
   while (echo.readSync() != 1) {
     start = us.now();
     if (start - failure > 10000) {
-      if(debug==true){
-        console.log(start-failure)
+      if (debug == true) {
+        console.log(start - failure)
       }
-      return ({ status: "ok", distance: 10, message: "too short"});
+      return ({ status: "ok", distance: 10, message: "too short" });
     }
   }
 
@@ -40,7 +40,7 @@ module.exports= async function ping(trigger, echo) {
   while (echo.readSync() != 0) {
     end = us.now();
     if (end - failure > 18000) {
-      return ({ status: "ok", distance: 300, message: "too far"});
+      return ({ status: "ok", distance: 300, message: "too far" });
     }
   }
   // Aus der Zeit zwischen ECHO-HIGH und ECHO-LOW errechnen wir die Distanz

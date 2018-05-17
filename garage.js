@@ -196,14 +196,14 @@ async function doorState(callback) {
   for (let i = 0; i <= num; i++) {
     measurements.push(await ping(hc_trigger, hc_echo));
   }
-    // Median der Messungen ist das Endresultat
-    let sorted = measurements.sort((a, b) => a.distance - b.distance)
-console.log(JSON.stringify(sorted));
-    let result = sorted[Math.floor(num/2)];
-    result.open = result.distance < MAX_DISTANCE ? true : false
-    result.running = running;
-    arduino.writeSync(result.open ? ON : OFF);
-    callback(result);
+  // Median der Messungen ist das Endresultat
+  let sorted = measurements.sort((a, b) => a.distance - b.distance)
+  console.log(JSON.stringify(sorted));
+  let result = sorted[Math.floor(num / 2)];
+  result.open = result.distance < MAX_DISTANCE ? true : false
+  result.running = running;
+  arduino.writeSync(result.open ? ON : OFF);
+  callback(result);
 }
 
 
