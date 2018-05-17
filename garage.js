@@ -478,7 +478,7 @@ app.post("/rest/state", function (request, response) {
       if(state.status=="ok"){
         response.json({ "status": "ok", "state": state.open ? 1 : 0 });
       }else{
-        response.json({"status":"error", message: "internal"});
+        response.json({"status":"error", message: "internal "+state.message});
       }
     })
   } else {
