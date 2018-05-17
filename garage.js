@@ -15,7 +15,7 @@
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi = false
+const realpi = true
 //const debug = false;
 
 // Pin-Definitionen
