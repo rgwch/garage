@@ -13,19 +13,19 @@
 
 /* eslint-disable no-console*/
 "use strict"
-import * as ping from './measure'
+import { ping } from './measure'
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = true
-const debug = false;
+//const debug = false;
 
 // Pin-Definitionen
 const GPIO_GARAGE = 18;
 const GPIO_ARDUINO = 23;
 const GPIO_ECHO = 15;
 const GPIO_TRIGGER = 14;
-const ON=0;
-const OFF=1;
+const ON = 0;
+const OFF = 1;
 
 // Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
 const MAX_DISTANCE = 100;
@@ -44,7 +44,6 @@ const nconf = require('nconf')
 const hash = require('crypto-js/sha256')
 const path = require('path')
 const bodyParser = require('body-parser');
-const us = require('microseconds');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 const favicon = require('serve-favicon');
 
@@ -190,7 +189,13 @@ function operateGarage(done) {
  * }
  */
 function doorState(callback) {
-  ping(hc_trigger,hc_echo)
+  ping(hc_trigger, hc_echo).then(result => {
+    if (result.status === "ok") {
+      result.open = result.distance < MAX_DISTANCE ? true : false
+      arduino.writeSync(result.open ? ON : OFF);
+    }
+    callback(result);
+  })
 
 }
 
@@ -464,21 +469,21 @@ app.get("/rest/checkecho", function (req, resp) {
   })
 })
 
-app.get("/rest/checkrelais",function(rea,resp){
-	console.log("check relay");
-	if(operateGarage(()=>{
-		resp.json({status: "ok"});		
-})==false){
-		resp.json("status: running");
-	}
+app.get("/rest/checkrelais", function (rea, resp) {
+  console.log("check relay");
+  if (operateGarage(() => {
+    resp.json({ status: "ok" });
+  }) == false) {
+    resp.json("status: running");
+  }
 
 });
 
-app.get("/rest/checkarduino",(req,resp)=>{
-	console.log("checkarduino");
-	arduino.writeSync(ON);
-	setTimeout(()=>{
-		arduino.writeSync(OFF);
-	resp.json({"status":"ok"});
-	},3000)
+app.get("/rest/checkarduino", (req, resp) => {
+  console.log("checkarduino");
+  arduino.writeSync(ON);
+  setTimeout(() => {
+    arduino.writeSync(OFF);
+    resp.json({ "status": "ok" });
+  }, 3000)
 })
