@@ -193,18 +193,17 @@ function operateGarage(done) {
 async function doorState(callback) {
   let measurements = []
   const num = 3;  // Zahl der Messungen
-  for (let i = 0; i < num; i++) {
-    measurements.push(ping(hc_trigger, hc_echo));
+  for (let i = 0; i <= num; i++) {
+    measurements.push(await ping(hc_trigger, hc_echo));
   }
-  Promise.all(measurements).then(unsorted => {
     // Median der Messungen ist das Endresultat
-    let sorted = unsorted.sort((a, b) => a.distance - b.distance)
+    let sorted = measurements.sort((a, b) => a.distance - b.distance)
+console.log(JSON.stringify(sorted));
     let result = sorted[Math.floor(num/2)];
     result.open = result.distance < MAX_DISTANCE ? true : false
     result.running = running;
     arduino.writeSync(result.open ? ON : OFF);
     callback(result);
-  })
 }
 
 
