@@ -9,12 +9,15 @@ $(function () {
   setPicture(doorstate)
 
   $(window).focus(function () {
-    doCall("/rest/state")
+    setInterval(() => {
+      doCall("/rest/state")
+    }, 1000)
+
   })
   $('#opener').click(function () {
-    console.log("vor:" +doorstate)
-    setPicture(parseInt(doorstate) === 0 ? 2 : 3)
-    if (!doCall("/rest/operate")){
+    console.log("vor:" + doorstate)
+    // setPicture(parseInt(doorstate) === 0 ? 2 : 3)
+    if (!doCall("/rest/operate")) {
       $('#opener').hide()
       $('#credentials').show()
       $('#setcred').click(function () {
@@ -62,13 +65,13 @@ $(function () {
       $.ajax({
         type: "POST",
         url: addr,
-        data: {"username": user, "password": pwd},
+        data: { "username": user, "password": pwd },
         success: function (res) {
           if (res.status === "ok") {
-            console.log("nach: "+res.state)
+            console.log("nach: " + res.state)
             doorstate = res.state
           } else {
-            if(res.message.startsWith("Wer")) {
+            if (res.message.startsWith("Wer")) {
               doorstate = 4
               localStorage.removeItem("garage_password")
             }

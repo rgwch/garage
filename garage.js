@@ -13,10 +13,9 @@
 
 /* eslint-disable no-console*/
 "use strict"
-import { ping } from './measure'
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi = true
+const realpi = false
 //const debug = false;
 
 // Pin-Definitionen
@@ -38,6 +37,7 @@ const time_to_run = 18000
 const lock_time = 3000
 
 const fs = require('fs')
+const ping = require('./measure');
 const https = require('https')
 const express = require('express')
 const nconf = require('nconf')
@@ -81,14 +81,13 @@ https.createServer({
 
 // Auf einem echten Pi ist Gpio auf onoff (https://www.npmjs.com/package/onoff) gesetzt
 // Auf einem anderen PC wird es einfach mit leeren Funktionen simuliert.
+
 let Gpio;
+
 if (realpi) {
   Gpio = require('onoff').Gpio;
 } else {
-  Gpio = {
-    writeSync: function () { },
-    readSync: function () { return true }
-  }
+  Gpio = require('./fakegpio')
 }
 
 const relay = new Gpio(GPIO_GARAGE, 'out');
@@ -178,25 +177,48 @@ function operateGarage(done) {
 }
 
 /**
- * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen. 
+ * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen. Wir messen drei mal
+ * und nehmen dann den Median als Resultat.
  * Wenn das Tor offen ist, Arduino einschalten, sonst ausschalten.
  * @param callback: Wird mit einer state-Meldung:
  * {
- *    state: "ok"|"error",
+ *    status: "ok"|"error",
  *    distance: (distanz in cm),
  *    open: (true wenn das Tor offen ist) ,
+ *    running: true wenn das Tor gerade fährt,
  *    message: (Fehlermeldung bei Fehler)
  * }
+ * aufgerufen
  */
-function doorState(callback) {
-  ping(hc_trigger, hc_echo).then(result => {
+async function doorState(callback) {
+  let measurements = []
+  let num = 0;
+  let now = new Date();
+  let fails = 0;
+  while (num < 3) {
+    let result = await ping(hc_trigger, hc_echo)
+    // Drei gültige Messungen sammeln
     if (result.status === "ok") {
-      result.open = result.distance < MAX_DISTANCE ? true : false
-      arduino.writeSync(result.open ? ON : OFF);
+      measurements.push(result);
+      num = num + 1;
+    } else {
+      fails = fails + 1;
+      if (fails > 5) {
+        callback(result);
+        break;
+      }
     }
-    callback(result);
-  })
 
+  }
+  if (fails <= 5) {
+    // Median der drei Messungen ist das Endresultat
+    let sorted = measurements.sort((a, b) => a.distance - b.distance)
+    let result = sorted[1];
+    result.open = result.distance < MAX_DISTANCE ? true : false
+    result.running=running;
+    arduino.writeSync(result.open ? ON : OFF);
+    callback(result);
+  }
 }
 
 
@@ -435,7 +457,7 @@ app.post("/rest/operate", function (request, response) {
   if (auth == "") {
     if (!operateGarage(function () {
       doorState(state => {
-        response.json({ "status": "ok", "state": state.open ? 1 : 0 })
+        response.json({ "status": "ok", "state": state.running ? 2 : (state.open ? 1 : 0) })
 
       })
     })) {
@@ -453,7 +475,11 @@ app.post("/rest/state", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     doorState(state => {
-      response.json({ "status": "ok", "state": state.open ? 1 : 0 });
+      if(state.status=="ok"){
+        response.json({ "status": "ok", "state": state.open ? 1 : 0 });
+      }else{
+        response.json({"status":"error", message: "internal"});
+      }
     })
   } else {
     response.json({ status: "error", message: auth })

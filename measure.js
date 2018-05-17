@@ -1,6 +1,12 @@
 const us = require('microseconds');
 
-export async function ping(trigger, echo) {
+const sleep=function(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms)
+  })
+}
+
+module.exports= async function ping(trigger, echo) {
   //const debug = true;
   trigger.writeSync(0); // Startzustand standardisieren
   await sleep(10);
@@ -33,8 +39,3 @@ export async function ping(trigger, echo) {
   return ({ status: "ok", distance: distance })
 }
 
-function sleep(ms) {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms)
-  })
-}
