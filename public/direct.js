@@ -1,6 +1,8 @@
 /**
  *  Garagentor-Fernbedienung mit Raspberry Pi
- *  (c) 2017 by G. Weirich
+ *  (c) 2017-2018 by G. Weirich
+ * 
+ * Clientseitiges Skript
  */
 
 $(function () {
@@ -8,14 +10,17 @@ $(function () {
   let doorstate = $('#opener').attr("data-status")
   setPicture(doorstate)
 
+  // Alle 2 Sekunden Status prüfen, solange die App läuft
   $(window).focus(function () {
     setInterval(() => {
       doCall("/rest/state")
-    }, 1000)
+    }, 2000)
 
   })
+
+  // User hat auf den Öffner geklickt. Wenn er abgewiesen wird: Credentials eintragen.
   $('#opener').click(function () {
-    console.log("vor:" + doorstate)
+    // console.log("vor:" + doorstate)
     // setPicture(parseInt(doorstate) === 0 ? 2 : 3)
     if (!doCall("/rest/operate")) {
       $('#opener').hide()
@@ -38,6 +43,7 @@ $(function () {
     $('#garclosing').hide()
   }
 
+  // Passendes Icon je nach Tor-Zustand setzen
   function setPicture(state) {
     clearPicture()
     switch (parseInt(state)) {
@@ -58,6 +64,7 @@ $(function () {
     }
   }
 
+  // REST POST request mit Credentials absetzen
   function doCall(addr) {
     let user = localStorage.getItem("garage_username")
     let pwd = localStorage.getItem("garage_password")
@@ -68,7 +75,7 @@ $(function () {
         data: { "username": user, "password": pwd },
         success: function (res) {
           if (res.status === "ok") {
-            console.log("nach: " + res.state)
+            // console.log("nach: " + res.state)
             doorstate = res.state
           } else {
             if (res.message.startsWith("Wer")) {

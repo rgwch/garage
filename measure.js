@@ -1,11 +1,33 @@
+/**
+ *  Garagentor-Fernbedienung mit Raspberry Pi
+ *  (c) 2017-2018 by G. Weirich
+ *
+ *  Ultraschall-Ping Modul   
+ */
 const us = require('microseconds');
 
-const sleep = function (ms) {
+/**
+ * Modernisiertes "sleep" mit async/await bzw. Promises: 
+ * Die Promise resolved nach der gewünschten Zeit.
+ * @param ms: Zeit in Millisekunden
+ */
+const {sleep} = function (ms) {
   return new Promise(resolve => {
     setTimeout(resolve, ms)
   })
 }
 
+/**
+ * Einen einzelnen Echo-Pin absetzen und die gemessene Distanz zurückliefern
+ * @param {*} trigger Pin, auf dem der Trigger liegt
+ * @param {*} echo Pin, auf dem das Echo ankommt
+ * @returns eine Promise mit einer Rückmeldung:
+ * {
+ *  status: "ok" | "error"
+ *  distance: (gemessene distanz in cm) 
+ *  message: "in range" | "too short" | "too far"
+ * }
+ */
 module.exports = async function ping(trigger, echo) {
   const debug = true;
   await sleep(10)

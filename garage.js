@@ -4,9 +4,9 @@
  * 
  * 8.4.2018: Verwende Ultraschall Sensor HC SR 04 zum feststellen, wo das Garagentor steht anstelle des 
  * Mikroschalters. Damit wird das Problem behoben, dass die Anzeige unzuverlässig ist, weil das Garagentor
- * nicht immer exakt am selben Ort anhält (abhängig von Temperatur, Luftfeuchtigkeit, Gespenstern usw.
- * Wir vereinfachen das: Wenn die Oberkante des Garagentors näher als MIN_DIST vom Sensor ist, betrachten wir es 
- * als offen.)
+ * nicht immer exakt am selben Ort anhält (abhängig von Temperatur, Luftfeuchtigkeit, Gespenstern usw.)
+ * Wir vereinfachen das: Wenn die Oberkante des Garagentors näher als MAX_DISTANCE vom Sensor ist, 
+ * betrachten wir es als offen.
  * 15.4.2018: Wechsel vom PiFace auf ein Standard-Relais, das mit onoff geschaltet wird. 
  * Ausserdem neue Funktion: Abstandswarner an der Stirnseite der Garage einschalten, wenn das Tor offen ist.
  */
@@ -19,11 +19,13 @@ const realpi = true
 //const debug = false;
 
 // Pin-Definitionen
-const GPIO_GARAGE = 18;
-const GPIO_ARDUINO = 23;
-const GPIO_ECHO = 15;
-const GPIO_TRIGGER = 14;
-const ON = 0;
+const GPIO_GARAGE = 18;   // Relais für Garagentorantrieb
+const GPIO_ARDUINO = 23;  // Relais für Strom für den Abstandswarner
+const GPIO_ECHO = 15;     // Echo vom HC-SR-04
+const GPIO_TRIGGER = 14;  // Trigger für den HC-SR-04
+
+// Welcher Pin-Zustand den Aktor einschaltet. Hängt vom verwendeten Relais-Typ ab
+const ON = 0;   
 const OFF = 1;
 
 // Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
@@ -31,9 +33,9 @@ const MAX_DISTANCE = 100;
 
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
-// Dauer des Öffnungs/Schliessvorgangs des Tors
+// Dauer des Öffnungs/Schliessvorgangs des Tors in ms
 const time_to_run = 18000
-// Aussperren bei falscher Passworteingabe
+// Aussperren bei falscher Passworteingabe in ms
 const lock_time = 3000
 
 const fs = require('fs')
@@ -100,7 +102,7 @@ arduino.writeSync(OFF);
 
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
- * pug benötigt wird, um sie nach HTML zu konvertieren.
+ * pug (ex-Jade) benötigt wird, um sie nach HTML zu konvertieren.
  */
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
@@ -120,7 +122,8 @@ app.use(bodyParser.urlencoded({
 
 /**
  * Password hashen
- * @param pwd
+ * @param pwd Klartext-Passwort
+ * @returns sha256 gehashtes mit salt modifiziertes Passwort
  */
 function encode(pwd) {
   const encoded = JSON.stringify(hash(pwd + salt))
@@ -177,9 +180,9 @@ function operateGarage(done) {
 }
 
 /**
- * Entfernung mit dem HC-SR04 Ultraschall-Sensor messen. Wir messen mehrmal
+ * Entfernung messen. Wir messen mehrmals
  * und nehmen dann den Median als Resultat.
- * Wenn das Tor offen ist, Arduino einschalten, sonst ausschalten.
+ * Wenn das Tor offen ist, Entfernungsmesser einschalten, sonst ausschalten.
  * @param callback: Wird mit einer state-Meldung:
  * {
  *    status: "ok"|"error",
@@ -320,7 +323,7 @@ app.post("/garage/action", function (request, response) {
 })
 
 /**
- * Einen neuen User eintragen. Als letzter Parameter muss das Master-Passwort angegeben werden.
+ * Einen neuen User eintragen. Als :master muss das Master-Passwort angegeben werden.
  * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen.
  */
 app.get("/adm/:master/add/:username/:password", function (req, resp) {
@@ -335,7 +338,7 @@ app.get("/adm/:master/add/:username/:password", function (req, resp) {
 })
 
 /**
- * Einen User löschen. Als letzter Parameter muss das Master-Passwort angegeben werden.
+ * Einen User löschen. Als :master muss das Master-Passwort angegeben werden.
  * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen..
  */
 app.get("/adm/:master/remove/:username", function (req, resp) {
@@ -347,7 +350,7 @@ app.get("/adm/:master/remove/:username", function (req, resp) {
 })
 
 /**
- * Server inaktiv schalten. Als Parameter muss das Master-Passwort angegeben werden.
+ * Server inaktiv schalten. Als :master muss das Master-Passwort angegeben werden.
  * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen.
  */
 app.get("/adm/:master/disable", function (req, resp) {
@@ -358,7 +361,7 @@ app.get("/adm/:master/disable", function (req, resp) {
 })
 
 /**
- * Server aktiv schalten.  Als Parameter muss das Master-Passwort angegeben werden.
+ * Server aktiv schalten.  Als :master muss das Master-Passwort angegeben werden.
  * Wenn bisher noch kein Master-Passwort existiert, wird es eingetragen.
  */
 app.get("/adm/:master/enable", function (req, resp) {
@@ -454,14 +457,14 @@ app.post("/rest/operate", function (request, response) {
 })
 
 /**
- * Status des Garagentors abfragen (0 geschlossen,1 offen)
+ * Status des Garagentors abfragen (0 geschlossen,1 offen, 2 fahrend)
  */
 app.post("/rest/state", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     doorState(state => {
       if (state.status == "ok") {
-        response.json({ "status": "ok", "state": state.open ? 1 : 0 });
+        response.json({ "status": "ok", "state": state.running ? 2 : (state.open ? 1 : 0) });
       } else {
         response.json({ "status": "error", message: "internal " + state.message });
       }

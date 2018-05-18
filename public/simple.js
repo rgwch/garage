@@ -1,6 +1,8 @@
 /**
  *  Garagentor-Fernbedienung mit Raspberry Pi
- *  (c) 2017 by G. Weirich
+ *  (c) 2017-2018 by G. Weirich
+ * 
+ * Passwortänderung für User
  */
 
 function enterPwd() {
@@ -11,7 +13,7 @@ function enterPwd() {
       "password": document.getElementById('pwd').value,
       "npwd": npwd
     }
-    req=new XMLHttpRequest()
+    let req=new XMLHttpRequest()
     req.open("POST", "/garage/chpwd")
     req.setRequestHeader("Content-Type","application/json")
     /*
