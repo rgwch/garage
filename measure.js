@@ -11,7 +11,7 @@ const us = require('microseconds');
  * Die Promise resolved nach der gewünschten Zeit.
  * @param ms: Zeit in Millisekunden
  */
-const {sleep} = function (ms) {
+const sleep = function (ms) {
   return new Promise(resolve => {
     setTimeout(resolve, ms)
   })

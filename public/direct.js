@@ -9,13 +9,21 @@ $(function () {
 
   let doorstate = $('#opener').attr("data-status")
   setPicture(doorstate)
+  let timer
 
   // Alle 2 Sekunden Status prüfen, solange die App läuft
   $(window).focus(function () {
-    setInterval(() => {
+    timer = setInterval(() => {
       doCall("/rest/state")
     }, 2000)
 
+  })
+
+  $(window).blur(function () {
+    if (timer) {
+      clearInterval(timer)
+      timer = undefined;
+    }
   })
 
   // User hat auf den Öffner geklickt. Wenn er abgewiesen wird: Credentials eintragen.
