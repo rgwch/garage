@@ -76,9 +76,11 @@ app.use(express.static(path.join(__dirname, 'public')));
  Oder man kauft irgendwo ein kostenpflichtiges Zertifikat. Aber das scheint mir für einen Garagentorantrieb
  eigentlich zu aufwändig.
  */
+
+let src=__dirname
 https.createServer({
-  key: fs.readFileSync('key.pem'),
-  cert: fs.readFileSync('cert.pem')
+   key: fs.readFileSync(src+'/key.pem'),
+  cert: fs.readFileSync(src+'/cert.pem')
 }, app).listen(2017)
 
 // Auf einem echten Pi ist Gpio auf onoff (https://www.npmjs.com/package/onoff) gesetzt
