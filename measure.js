@@ -29,7 +29,7 @@ const sleep = function (ms) {
  * }
  */
 module.exports = async function ping(trigger, echo) {
-  const debug = true;
+  const debug = false;
   await sleep(10)
   trigger.writeSync(0); // Startzustand standardisieren
   await sleep(5);

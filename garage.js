@@ -201,7 +201,7 @@ async function doorState(callback) {
   }
   // Median der Messungen ist das Endresultat
   let sorted = measurements.sort((a, b) => a.distance - b.distance)
-  console.log(JSON.stringify(sorted));
+  // console.log(JSON.stringify(sorted));
   let result = sorted[Math.floor(num / 2)];
   result.open = result.distance < MAX_DISTANCE ? true : false
   result.running = running;
@@ -475,7 +475,8 @@ app.post("/rest/state", function (request, response) {
 })
 
 
-/** Remove functions below in productive code */
+/** comment out functions below in productive code */
+/*
 app.get("/rest/checkecho", function (req, resp) {
   console.log("check doorstate");
   doorState(state => {
@@ -501,3 +502,4 @@ app.get("/rest/checkarduino", (req, resp) => {
     resp.json({ "status": "ok" });
   }, 3000)
 })
+*/
