@@ -49,7 +49,7 @@ const bodyParser = require('body-parser');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 const favicon = require('serve-favicon');
 
-nconf.file('users.json')
+nconf.file(__dirname+'/users.json')
 const app = express()
 // Dieses Flag nutzen wir später, um den Server temporär inaktiv zu schalten.
 let disabled = false;
