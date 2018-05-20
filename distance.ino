@@ -27,7 +27,7 @@ void loop() {
   digitalWrite(green,0);
   delay(250);
   int distance=ping();
-  if(distance<10){
+  if(distance<15){
     digitalWrite(red,1);
   }else if(distance<50){
     digitalWrite(yellow,1);

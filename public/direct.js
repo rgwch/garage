@@ -9,22 +9,13 @@ $(function () {
 
   let doorstate = $('#opener').attr("data-status")
   setPicture(doorstate)
-  let timer
 
   // Alle 2 Sekunden Status prüfen, solange die App läuft
-  $(window).focus(function () {
-    timer = setInterval(() => {
-      doCall("/rest/state")
-    }, 2000)
+  setInterval(() => {
+    //console.log("ping");
+    doCall("/rest/state")
+  }, 2000)
 
-  })
-
-  $(window).blur(function () {
-    if (timer) {
-      clearInterval(timer)
-      timer = undefined;
-    }
-  })
 
   // User hat auf den Öffner geklickt. Wenn er abgewiesen wird: Credentials eintragen.
   $('#opener').click(function () {
@@ -83,7 +74,7 @@ $(function () {
         data: { "username": user, "password": pwd },
         success: function (res) {
           if (res.status === "ok") {
-            // console.log("nach: " + res.state)
+            //console.log("nach: " + res.state)
             doorstate = res.state
           } else {
             if (res.message.startsWith("Wer")) {
