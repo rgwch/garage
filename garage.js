@@ -478,7 +478,7 @@ app.post("/rest/state", function (request, response) {
 
 
 /** comment out functions below in productive code */
-/*
+
 app.get("/rest/checkecho", function (req, resp) {
   console.log("check doorstate");
   doorState(state => {
@@ -499,9 +499,11 @@ app.get("/rest/checkrelais", function (rea, resp) {
 app.get("/rest/checkarduino", (req, resp) => {
   console.log("checkarduino");
   arduino.writeSync(ON);
-  setTimeout(() => {
-    arduino.writeSync(OFF);
-    resp.json({ "status": "ok" });
-  }, 3000)
-})
-*/
+	resp.json({status: "arduino on"});
+});
+
+app.get("/rest/stoparduino", (req,resp)=>{
+	console.log("stop arduino");
+	arduino.writeSync(OFF);
+	resp.json({status: "arduino off"});
+});
