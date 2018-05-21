@@ -5,9 +5,9 @@
  // Pins definieren
 const int trigger = 5;
 const int echo = 6;
-const int red=2;
-const int yellow=3;
-const int green=4;
+const int red=7;
+const int yellow=8;
+const int green=9;
 
 const int RED_DISTANCE=15; //cm
 const int YELLOW_DISTANCE=50;
