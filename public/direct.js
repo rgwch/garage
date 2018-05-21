@@ -8,6 +8,7 @@
 $(function () {
 
   let doorstate = $('#opener').attr("data-status")
+  let arduino = false;
   setPicture(doorstate)
 
   // Alle 2 Sekunden Status prüfen, solange die App läuft
@@ -34,12 +35,21 @@ $(function () {
     }
   })
 
+  // User hat auf den Distanzmesser geklickt. Arduino ein oder ausschalten
+  $('#distance').click(function(){
+    if(arduino==false){
+      doCall("/rest/warner")
+    }
+  })
+
   function clearPicture() {
     $('#garopen').hide()
     $('#garclosed').hide()
     $('#garquestion').hide()
     $('#garopening').hide()
     $('#garclosing').hide()
+    $('#abstandaus').hide()
+    $('#abstandein').hide()
   }
 
   // Passendes Icon je nach Tor-Zustand setzen
@@ -76,14 +86,21 @@ $(function () {
           if (res.status === "ok") {
             //console.log("nach: " + res.state)
             doorstate = res.state
+            arduino = res.warner
           } else {
             if (res.message.startsWith("Wer")) {
               doorstate = 4
+              arduino=false;
               localStorage.removeItem("garage_password")
             }
             alert(res.message)
           }
           setPicture(doorstate)
+          if(arduino){
+            $('#abstandein').show();
+          }else{
+            $('#abstandaus').show();
+          }
         },
         error: function (err) {
           doorstate = 4

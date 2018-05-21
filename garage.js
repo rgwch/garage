@@ -15,7 +15,7 @@
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi = true;
+const realpi=false;
 //const debug = false;
 
 // Pin-Definitionen
@@ -25,7 +25,7 @@ const GPIO_ECHO = 15;     // Echo vom HC-SR-04
 const GPIO_TRIGGER = 14;  // Trigger für den HC-SR-04
 
 // Welcher Pin-Zustand den Aktor einschaltet. Hängt vom verwendeten Relais-Typ ab
-const ON = 0;   
+const ON = 0;
 const OFF = 1;
 
 // Maximaldistanz, bis zu der das Garagentor als offen erkannt wird.
@@ -49,7 +49,7 @@ const bodyParser = require('body-parser');
 const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 const favicon = require('serve-favicon');
 
-nconf.file(__dirname+'/users.json')
+nconf.file(__dirname + '/users.json')
 const app = express()
 // Dieses Flag nutzen wir später, um den Server temporär inaktiv zu schalten.
 let disabled = false;
@@ -77,30 +77,39 @@ app.use(express.static(path.join(__dirname, 'public')));
  eigentlich zu aufwändig.
  */
 
-let src=__dirname
+let src = __dirname
 https.createServer({
-   key: fs.readFileSync(src+'/key.pem'),
-  cert: fs.readFileSync(src+'/cert.pem')
+  key: fs.readFileSync(src + '/key.pem'),
+  cert: fs.readFileSync(src + '/cert.pem')
 }, app).listen(2017)
 
 // Auf einem echten Pi ist Gpio auf onoff (https://www.npmjs.com/package/onoff) gesetzt
 // Auf einem anderen PC wird es einfach mit leeren Funktionen simuliert.
 
-let Gpio;
 
-if (realpi) {
-  Gpio = require('onoff').Gpio;
+let relay
+let hc_trigger
+let hc_echo
+let arduino
+
+if (realpi ) {
+  const Gpio = require('onoff').Gpio;
+
+  relay = new Gpio(GPIO_GARAGE, 'high');
+  hc_trigger = new Gpio(GPIO_TRIGGER, 'out');
+  hc_echo = new Gpio(GPIO_ECHO, 'in');
+  arduino = new Gpio(GPIO_ARDUINO, 'high');
 } else {
-  Gpio = require('./fakegpio')
+  let Fake = require('./fakegpio')
+  relay = new Fake(GPIO_GARAGE, 'out');
+  hc_trigger = new Fake(GPIO_TRIGGER, 'out');
+  hc_echo = new Fake(GPIO_ECHO, 'in');
+  arduino = new Fake(GPIO_ARDUINO, 'out');
+
 }
 
-const relay = new Gpio(GPIO_GARAGE, 'out');
-const hc_trigger = new Gpio(GPIO_TRIGGER, 'out');
-const hc_echo = new Gpio(GPIO_ECHO, 'in');
-const arduino = new Gpio(GPIO_ARDUINO, 'out');
 relay.writeSync(OFF);
 arduino.writeSync(OFF);
-
 
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
@@ -410,16 +419,18 @@ function checkCredentials(request) {
   if (request.body.username) {
     let user = request.body.username.toLocaleLowerCase()
     if (isLocked(failures[user])) {
+      console.log(new Date()+" locked user tries to login "+request.body.username);
       return "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
     } else {
       let password = encode(request.body.password)
       let valid = nconf.get(user)
       if (valid && valid === password) {
-        console.log(new Date() + "- userok: " + request.body.username);
+        // console.log(new Date() + "- userok: " + request.body.username);
         delete failures[user]
         return ""
       } else {
         let secs = setLock(user)
+        console.log(new Date()+" - user failed: "+request.body.username+","+request.body.password);
         return "Wer bist denn du??? Sperre " + secs + " Sekunden."
       }
     }
@@ -459,6 +470,25 @@ app.post("/rest/operate", function (request, response) {
 })
 
 /**
+ * 
+ */
+app.post("/rest/warner", function(req,resp){
+  let auth=checkCredentials(req);
+  if(auth==""){
+    let st=false;
+    if(req.body.mode==="on"){
+      arduino.writeSync(ON);
+      st=true;
+    }else{
+      arduino.writeSync(OFF);
+    }
+    resp.json({status: "ok", warner: st});
+  }else{
+    resp.json({ status: "error", message: auth })
+  }
+})
+
+/**
  * Status des Garagentors abfragen (0 geschlossen,1 offen, 2 fahrend)
  */
 app.post("/rest/state", function (request, response) {
@@ -466,7 +496,14 @@ app.post("/rest/state", function (request, response) {
   if (auth == "") {
     doorState(state => {
       if (state.status == "ok") {
-        response.json({ "status": "ok", "state": state.running ? 2 : (state.open ? 1 : 0) });
+        let ans={status:"ok"}
+        if(state.running){
+          ans.state=2
+        }else{
+          ans.state=state.open ? 1: 0;
+        }
+        ans.warner=arduino.readSync() ? false : true;
+        response.json(ans);
       } else {
         response.json({ "status": "error", message: "internal " + state.message });
       }
@@ -499,11 +536,11 @@ app.get("/rest/checkrelais", function (rea, resp) {
 app.get("/rest/checkarduino", (req, resp) => {
   console.log("checkarduino");
   arduino.writeSync(ON);
-	resp.json({status: "arduino on"});
+  resp.json({ status: "arduino on" });
 });
 
-app.get("/rest/stoparduino", (req,resp)=>{
-	console.log("stop arduino");
-	arduino.writeSync(OFF);
-	resp.json({status: "arduino off"});
+app.get("/rest/stoparduino", (req, resp) => {
+  console.log("stop arduino");
+  arduino.writeSync(OFF);
+  resp.json({ status: "arduino off" });
 });
