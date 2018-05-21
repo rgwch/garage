@@ -38,7 +38,9 @@ $(function () {
   // User hat auf den Distanzmesser geklickt. Arduino ein oder ausschalten
   $('#distance').click(function(){
     if(arduino==false){
-      doCall("/rest/warner")
+      doCall("/rest/warner","on")
+    }else{
+      doCall("/rest/warner","off")
     }
   })
 
@@ -74,14 +76,14 @@ $(function () {
   }
 
   // REST POST request mit Credentials absetzen
-  function doCall(addr) {
+  function doCall(addr,extra) {
     let user = localStorage.getItem("garage_username")
     let pwd = localStorage.getItem("garage_password")
     if (user && pwd) {
       $.ajax({
         type: "POST",
         url: addr,
-        data: { "username": user, "password": pwd },
+        data: { "username": user, "password": pwd,"extra": extra },
         success: function (res) {
           if (res.status === "ok") {
             //console.log("nach: " + res.state)

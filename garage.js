@@ -476,7 +476,7 @@ app.post("/rest/warner", function(req,resp){
   let auth=checkCredentials(req);
   if(auth==""){
     let st=false;
-    if(req.body.mode==="on"){
+    if(req.body.extra==="on"){
       arduino.writeSync(ON);
       st=true;
     }else{
