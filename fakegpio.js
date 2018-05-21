@@ -5,9 +5,18 @@
  * Mock als Ersatz für die RaspberryGPIOS
  **/
 module.exports=class Gpio{
-    constructor(pin,dir){}
-    writeSync(){}
+    constructor(pin,dir){
+      this.pin=pin
+      this.dir=dir
+    }
+    writeSync(val){
+      if(this.dir==='in'){
+        throw new Error("only Input for "+this.pin)
+      }else{
+        this.value=val;
+      }
+    }
     readSync(){
-        return false;
+        return this.value ? 1 : 0;
     }
 }

@@ -9,17 +9,23 @@ $(function () {
 
   let doorstate = $('#opener').attr("data-status")
   let arduino = false;
+  let timer;
   setPicture(doorstate)
   $('#abstandaus').show();
 
-  // Alle 2 Sekunden Status prüfen, solange die App läuft
-  setInterval(() => {
-    //console.log("ping");
-    if(!doCall("/rest/state")){
-      askCredentials();
-    }
-  }, 2000)
+  $(window).focus(function () {
+    // Alle 2 Sekunden Status prüfen, solange das Programm den Focus hat
+    timer = setInterval(() => {
+      //console.log("ping");
+      if (!doCall("/rest/state")) {
+        askCredentials();
+      }
+    }, 2000)
+  })
 
+  $(window).blur(function () {
+    clearInterval(timer);
+  })
 
   // User hat auf den Öffner geklickt. Wenn er abgewiesen wird: Credentials eintragen.
   $('#opener').click(function () {
@@ -31,15 +37,15 @@ $(function () {
   })
 
   // User hat auf den Distanzmesser geklickt. Arduino ein oder ausschalten
-  $('#distance').click(function(){
-    if(arduino==false){
-      doCall("/rest/warner","on")
-    }else{
-      doCall("/rest/warner","off")
+  $('#distance').click(function () {
+    if (arduino == false) {
+      doCall("/rest/warner", "on")
+    } else {
+      doCall("/rest/warner", "off")
     }
   })
 
-  function askCredentials(){
+  function askCredentials() {
     $('#opener').hide()
     $('#credentials').show()
     $('#setcred').click(function () {
@@ -48,7 +54,7 @@ $(function () {
       $('#credentials').hide()
       $('#opener').show()
     })
- 
+
   }
   function clearPicture() {
     $('#garopen').hide()
@@ -82,14 +88,14 @@ $(function () {
   }
 
   // REST POST request mit Credentials absetzen
-  function doCall(addr,extra) {
+  function doCall(addr, extra) {
     let user = localStorage.getItem("garage_username")
     let pwd = localStorage.getItem("garage_password")
     if (user && pwd) {
       $.ajax({
         type: "POST",
         url: addr,
-        data: { "username": user, "password": pwd,"extra": extra },
+        data: { "username": user, "password": pwd, "extra": extra },
         success: function (res) {
           if (res.status === "ok") {
             //console.log("nach: " + res.state)
@@ -98,15 +104,15 @@ $(function () {
           } else {
             if (res.message.startsWith("Wer")) {
               doorstate = 4
-              arduino=false;
+              arduino = false;
               localStorage.removeItem("garage_password")
             }
             alert(res.message)
           }
           setPicture(doorstate)
-          if(arduino){
+          if (arduino) {
             $('#abstandein').show();
-          }else{
+          } else {
             $('#abstandaus').show();
           }
         },

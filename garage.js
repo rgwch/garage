@@ -15,7 +15,7 @@
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi=true;
+const realpi = false;
 //const debug = false;
 
 // Pin-Definitionen
@@ -34,7 +34,7 @@ const MAX_DISTANCE = 100;
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors in ms
-const time_to_run = 18000
+const time_to_run = 17000
 // Aussperren bei falscher Passworteingabe in ms
 const lock_time = 3000
 
@@ -57,6 +57,8 @@ let disabled = false;
 let running = false
 // Hier sammeln wir schiefgegangene Login-Versuche
 const failures = {}
+// wenn true, wird der Arduino nicht automatisch ausgeschaltet.
+let arduino_manual=false;
 
 app.set('view-cache', true)
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -86,13 +88,12 @@ https.createServer({
 // Auf einem echten Pi ist Gpio auf onoff (https://www.npmjs.com/package/onoff) gesetzt
 // Auf einem anderen PC wird es einfach mit leeren Funktionen simuliert.
 
-
 let relay
 let hc_trigger
 let hc_echo
 let arduino
 
-if (realpi ) {
+if (realpi) {
   const Gpio = require('onoff').Gpio;
 
   relay = new Gpio(GPIO_GARAGE, 'high');
@@ -143,6 +144,7 @@ function encode(pwd) {
 
 /**
  Check, ob der aktuelle Anwender gesperrt ist
+ @returns {boolean} true, wenn er gesperrt ist
  */
 function isLocked(lockinfo) {
   if (lockinfo) {
@@ -172,6 +174,7 @@ function setLock(user) {
 /**
  "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
  keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
+ @returns true, wenn der Befehl ausgeführt wurde, false, wenn das Garagentor schon fährt.
  */
 function operateGarage(done) {
   if (running) {
@@ -193,7 +196,7 @@ function operateGarage(done) {
 /**
  * Entfernung messen. Wir messen mehrmals
  * und nehmen dann den Median als Resultat.
- * Wenn das Tor offen ist, Entfernungsmesser einschalten, sonst ausschalten.
+ * Wenn das Tor offen ist, Arduino-Abstandswarner einschalten, sonst ausschalten.
  * @param callback: Wird mit einer state-Meldung:
  * {
  *    status: "ok"|"error",
@@ -216,7 +219,9 @@ async function doorState(callback) {
   let result = sorted[Math.floor(num / 2)];
   result.open = result.distance < MAX_DISTANCE ? true : false
   result.running = running;
-  arduino.writeSync(result.open ? ON : OFF);
+  if(!arduino_manual){
+    arduino.writeSync(result.open ? ON : OFF);
+  }
   callback(result);
 }
 
@@ -249,8 +254,8 @@ app.post("/*", function (req, resp, next) {
 
 
 /**
- * Zugriffstest; wird vor alle https://server:2015/garage/... Anfragen POST requessts geschaltet
- * Wenn ein user gesperrt ist, dann prüfe, ob die Sperre abgelaufen ist. Wenn nein, abweisen
+ * Zugriffstest; wird vor alle https://server:2015/garage/... POST requests geschaltet
+ * Wenn ein User gesperrt ist, dann prüfe, ob die Sperre abgelaufen ist. Wenn nein, abweisen
  * Sonst:
  * Wenn das Passwort korrekt ist, allfällige Sperren löschen
  * Wenn das Passwort falsch ist, Sperre erneut setzen, Dauer erhöhen (2^attempt*lock_time)
@@ -401,7 +406,7 @@ app.post("/garage/chpwd", function (req, resp) {
  * Logfile auslesen
  */
 app.get("/adm/:master/log", function (req, resp) {
-  fs.readFile("../forever.log", function (err, data) {
+  fs.readFile("/var/logs/garage.log", function (err, data) {
     if (err) {
       resp.render("answer", { message: err })
     } else {
@@ -415,11 +420,16 @@ app.get("/adm/:master/log", function (req, resp) {
  * JSON Rest interface für Anwendung mit reinen Javascript Apps
  **************************************************************/
 
+/**
+ * Username und Passwort prüfen
+ * @param request das Request-Objekt
+ * @returns "" wenn alls iO ist, sonst eine Fehlermeldung
+ */
 function checkCredentials(request) {
   if (request.body.username) {
     let user = request.body.username.toLocaleLowerCase()
     if (isLocked(failures[user])) {
-      console.log(new Date()+" locked user tries to login "+request.body.username);
+      console.log(new Date() + " locked user tries to login " + request.body.username);
       return "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
     } else {
       let password = encode(request.body.password)
@@ -430,7 +440,7 @@ function checkCredentials(request) {
         return ""
       } else {
         let secs = setLock(user)
-        console.log(new Date()+" - user failed: "+request.body.username+","+request.body.password);
+        console.log(new Date() + " - user failed: " + request.body.username + "," + request.body.password);
         return "Wer bist denn du??? Sperre " + secs + " Sekunden."
       }
     }
@@ -440,7 +450,7 @@ function checkCredentials(request) {
 }
 
 /**
- * Script und View holen
+ * Web-App-Script und View holen
  */
 app.get("/rest", function (req, resp) {
   doorState(doorstate => {
@@ -470,20 +480,22 @@ app.post("/rest/operate", function (request, response) {
 })
 
 /**
- * 
+ * Arduino-Abstandswarner ein oder ausschalten
  */
-app.post("/rest/warner", function(req,resp){
-  let auth=checkCredentials(req);
-  if(auth==""){
-    let st=false;
-    if(req.body.extra==="on"){
+app.post("/rest/warner", function (req, resp) {
+  let auth = checkCredentials(req);
+  if (auth == "") {
+    let st = false;
+    if (req.body.extra === "on") {
       arduino.writeSync(ON);
-      st=true;
-    }else{
+      arduino_manual=true;
+      st = true;
+    } else {
+      arduino_manual=false;
       arduino.writeSync(OFF);
     }
-    resp.json({status: "ok", warner: st});
-  }else{
+    resp.json({ status: "ok", warner: st });
+  } else {
     resp.json({ status: "error", message: auth })
   }
 })
@@ -496,13 +508,13 @@ app.post("/rest/state", function (request, response) {
   if (auth == "") {
     doorState(state => {
       if (state.status == "ok") {
-        let ans={status:"ok"}
-        if(state.running){
-          ans.state=2
-        }else{
-          ans.state=state.open ? 1: 0;
+        let ans = { status: "ok" }
+        if (state.running) {
+          ans.state = 2
+        } else {
+          ans.state = state.open ? 1 : 0;
         }
-        ans.warner=arduino.readSync()==ON ? true : false;
+        ans.warner = arduino.readSync() == ON ? true : false;
         response.json(ans);
       } else {
         response.json({ "status": "error", message: "internal " + state.message });
