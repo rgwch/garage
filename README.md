@@ -7,12 +7,11 @@ eingeschaltet, der als Abstandswarner an der Stirnseite dient.
 
 ## Hardware
 
-* Raspberry Pi B+, 2 oder 3.
+* Raspberry Pi Zero, B+, 2 oder 3.
 * 2 Relais oder Optokoppler
 * 2 HC-SR-04 oder HC-SR-05 Ultraschall-Sensoren
 * 1 Arduino Nano
 * 3 Leuchtdioden grün / gelb / rot für Abstandswarner
-* 1 Transistor BC-347 o.Ae.
 * 2 Widerstände 330 Ohm
 * 1 Widerstand 470 Ohm
 * 1 Netzteil für Raspberry Pi (Der Arduino wird über den Raspberry versorgt)
@@ -21,16 +20,16 @@ eingeschaltet, der als Abstandswarner an der Stirnseite dient.
 
 ## Software
 
-NodeJS 7.x, z.B. so:
+NodeJS 10.x, z.B. so:
 
       sudo apt-get remove nodejs
       cd
       mkdir apps
       cd apps
-      wget https://nodejs.org/dist/v7.7.3/node-v7.7.3-linux-armv6l.tar.xz
-      tar -xf node-v7.7.3-linux-armv6l.tar.xz
-      mv node-v7.7.3-linux-armv6l node7
-      sudo ln -s /home/pi/apps/node7/bin/node /usr/bin/node
-      sudo ln -s /home/pi/apps/node7/bin/npm /usr/bin/npm
-      echo export PATH=$PATH:/home/pi/apps/node7/bin >>../.profile
+      wget http://nodejs.org/dist/latest-v10.x/node-v10.1.0-linux-armv6l.tar.xz
+      tar -xf node-v10.1.0-linux-armv6l.tar.xz
+      mv node-v10.1.0-linux-armv6l node10
+      sudo ln -s /home/pi/apps/node10/bin/node /usr/bin/node
+      sudo ln -s /home/pi/apps/node10/bin/npm /usr/bin/npm
+      echo export PATH=$PATH:/home/pi/apps/node10/bin >>../.profile
 
