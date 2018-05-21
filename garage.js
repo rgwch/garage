@@ -502,7 +502,7 @@ app.post("/rest/state", function (request, response) {
         }else{
           ans.state=state.open ? 1: 0;
         }
-        ans.warner=arduino.readSync() ? false : true;
+        ans.warner=arduino.readSync()==ON ? true : false;
         response.json(ans);
       } else {
         response.json({ "status": "error", message: "internal " + state.message });
