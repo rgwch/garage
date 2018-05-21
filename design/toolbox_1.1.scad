@@ -24,7 +24,7 @@ module cover(inner_size,thick,latch_x=0, latch_y=0){
         translate([-thick,-thick,-thick]){
             cube([inner_size.x+2*thick,  inner_size.y+2*thick, thick]);
             translate([thick,thick,thick]){
-                cube([inner_size.x-0.1,inner_size.y-0.2,1.5*thick]);
+                cube([inner_size.x-0.1,inner_size.y-0.1,1.5*thick]);
                 if(latch_x>0){
                     translate([center(inner_size.x,inner_size.x/3),0,1.5*thick]){
                         cube([inner_size.x/3,thick*0.9,latch_x]);
@@ -49,7 +49,7 @@ module cover(inner_size,thick,latch_x=0, latch_y=0){
     Viereckige Dose mit gerundeten Ecken
     Parameter: Innenmasse, Radius der Eckenrundungen, Wanddicke
 */
-module roundedBox(inner_size,radius,thick){
+module roundedBox(inner_size,radius=5,thick=3){
     translate([-thick,-thick,-thick]){
         difference(){
             roundedCube([inner_size.x+2*thick,inner_size.y+2*thick,inner_size.z+2*thick],radius);
@@ -62,11 +62,28 @@ module roundedBox(inner_size,radius,thick){
 /*
     Deckel für gerundete Box
 */
-module roundedCover(inner_size,radius,thick){
+module roundedCover(inner_size,radius,thick,latch_x=0,latch_y=0){
     translate([-thick,-thick,-thick]){
         roundedCube([inner_size.x+2*thick,  inner_size.y+2*thick, thick],radius);
-        translate([thick,thick,thick])
+        translate([thick,thick,thick]){
             cube([inner_size.x,inner_size.y,thick]);
+            if(latch_x>0){
+                    translate([center(inner_size.x,inner_size.x/3),0,thick]){
+                        cube([inner_size.x/3,thick*0.9,latch_x]);
+                    }
+                    translate([center(inner_size.x,inner_size.x/3),inner_size.y-thick,thick]){
+                        cube([inner_size.x/3,thick*0.9,latch_x]);
+                    }
+                }
+                if(latch_y>0){
+                    translate([0,center(inner_size.y,inner_size.y/3),thick]){
+                        cube([thick*0.9,inner_size.y/3,latch_y]);             
+                    }
+                    translate([inner_size.x-thick,center(inner_size.y,inner_size.y/3),thick])
+                        cube([thick*0.9,inner_size.y/3,latch_y]);             
+                    
+                }
+            }
         }
 }
 

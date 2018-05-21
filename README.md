@@ -8,13 +8,13 @@ eingeschaltet, der als Abstandswarner an der Stirnseite dient.
 ## Hardware
 
 * Raspberry Pi B+, 2 oder 3.
-* Relais oder Optokoppler
-* 2 HC-SR04 oder HC-SR05 Ultraschall-Sensoren
+* 2 Relais oder Optokoppler
+* 2 HC-SR-04 oder HC-SR-05 Ultraschall-Sensoren
 * 1 Arduino Nano
 * 3 Leuchtdioden grün / gelb / rot für Abstandswarner
 * 1 Transistor BC-347 o.Ae.
-* 3 Widerstände 220 Ohm
-* 1 Widerstand 1.5 kOhm
+* 2 Widerstände 330 Ohm
+* 1 Widerstand 470 Ohm
 * 1 Netzteil für Raspberry Pi (Der Arduino wird über den Raspberry versorgt)
 
 3D-Drucker für die Gehäuse.
