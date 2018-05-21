@@ -10,11 +10,14 @@ $(function () {
   let doorstate = $('#opener').attr("data-status")
   let arduino = false;
   setPicture(doorstate)
+  $('#abstandaus').show();
 
   // Alle 2 Sekunden Status prüfen, solange die App läuft
   setInterval(() => {
     //console.log("ping");
-    doCall("/rest/state")
+    if(!doCall("/rest/state")){
+      askCredentials();
+    }
   }, 2000)
 
 
@@ -23,15 +26,7 @@ $(function () {
     // console.log("vor:" + doorstate)
     // setPicture(parseInt(doorstate) === 0 ? 2 : 3)
     if (!doCall("/rest/operate")) {
-      $('#opener').hide()
-      $('#credentials').show()
-      $('#setcred').click(function () {
-        localStorage.setItem("garage_username", $('#uname').val())
-        localStorage.setItem("garage_password", $('#pwd').val())
-        $('#credentials').hide()
-        $('#opener').show()
-        $('#opener').click()
-      })
+      askCredentials();
     }
   })
 
@@ -44,6 +39,17 @@ $(function () {
     }
   })
 
+  function askCredentials(){
+    $('#opener').hide()
+    $('#credentials').show()
+    $('#setcred').click(function () {
+      localStorage.setItem("garage_username", $('#uname').val())
+      localStorage.setItem("garage_password", $('#pwd').val())
+      $('#credentials').hide()
+      $('#opener').show()
+    })
+ 
+  }
   function clearPicture() {
     $('#garopen').hide()
     $('#garclosed').hide()
