@@ -58,7 +58,7 @@ let running = false
 // Hier sammeln wir schiefgegangene Login-Versuche
 const failures = {}
 // wenn true, wird der Arduino nicht automatisch ausgeschaltet.
-let arduino_manual=false;
+let arduino_manual = false;
 
 app.set('view-cache', true)
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -201,28 +201,38 @@ function operateGarage(done) {
  * {
  *    status: "ok"|"error",
  *    distance: (distanz in cm),
- *    open: (true wenn das Tor offen ist) ,
- *    running: true wenn das Tor gerade fährt,
+ *    state: "open"|"running"|"closed" ,
+ *    warner: true, wenn der Abstandswarner eingeschaltet ist
  *    message: (Fehlermeldung bei Fehler)
  * }
  * aufgerufen
  */
-async function doorState(callback) {
-  let measurements = []
-  const num = 3;  // Zahl der Messungen
-  for (let i = 0; i <= num; i++) {
-    measurements.push(await ping(hc_trigger, hc_echo));
+async function getDoorState() {
+  if (running) {
+    return {
+      state: "running",
+      warner: arduino.readSync() == ON ? true : false
+    }
+  } else {
+    let measurements = []
+    const num = 3;  // Zahl der Messungen
+    for (let i = 0; i <= num; i++) {
+      measurements.push(await ping(hc_trigger, hc_echo));
+    }
+    // Median der Messungen ist das Endresultat
+    let sorted = measurements.sort((a, b) => a.distance - b.distance)
+    // console.log(JSON.stringify(sorted));
+    let result = sorted[Math.floor(num / 2)];
+    result.state = result.distance < MAX_DISTANCE ? "open" : "closed"
+    if (!arduino_manual) {
+      let setarduino = result.state == "open" ? ON : OFF
+      arduino.writeSync(setarduino);
+      result.warner = setarduino == ON ? true : false
+    } else {
+      result.warner = true;
+    }
+    return result;
   }
-  // Median der Messungen ist das Endresultat
-  let sorted = measurements.sort((a, b) => a.distance - b.distance)
-  // console.log(JSON.stringify(sorted));
-  let result = sorted[Math.floor(num / 2)];
-  result.open = result.distance < MAX_DISTANCE ? true : false
-  result.running = running;
-  if(!arduino_manual){
-    arduino.writeSync(result.open ? ON : OFF);
-  }
-  callback(result);
 }
 
 
@@ -312,12 +322,12 @@ app.get("/adm/:master/*", function (req, resp, next) {
  Nach dem Login-Screen und erfolgreicher Passworteingabe: Aktuellen Zustand des Tors anzeigen.
  */
 app.post("/garage/login", function (request, response) {
-  doorState(doorstate => {
-    let action = doorstate.open ? "Schliessen" : "Öffnen";
+  getDoorState().then(doorstate => {
+    let action = doorstate.state=="open" ? "Schliessen" : "Öffnen";
     response.render("confirm", {
       name: request.body.username,
       pwd: request.body.password,
-      status: doorstate.open ? "offen" : "geschlossen",
+      status: doorstate.state=="open" ? "offen" : "geschlossen",
       action: action
     });
 
@@ -453,9 +463,8 @@ function checkCredentials(request) {
  * Web-App-Script und View holen
  */
 app.get("/rest", function (req, resp) {
-  doorState(doorstate => {
-    let state = doorstate.open ? 1 : 0;
-    resp.render("direct", { state: state });
+  getDoorState().then(doorState => {
+    resp.render("direct", { doorState: doorState });
   })
 })
 
@@ -467,9 +476,8 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (!operateGarage(function () {
-      doorState(state => {
-        response.json({ "status": "ok", "state": state.running ? 2 : (state.open ? 1 : 0) })
-
+      getDoorState().then(state => {
+        response.json(state)
       })
     })) {
       response.json({ "status": "error", message: "Das Garagentor fährt gerade. Bitte warten" })
@@ -482,44 +490,29 @@ app.post("/rest/operate", function (request, response) {
 /**
  * Arduino-Abstandswarner ein oder ausschalten
  */
-app.post("/rest/warner", function (req, resp) {
+app.post("/rest/warner", async function (req, resp) {
   let auth = checkCredentials(req);
   if (auth == "") {
-    let st = false;
     if (req.body.extra === "on") {
       arduino.writeSync(ON);
-      arduino_manual=true;
-      st = true;
+      arduino_manual = true;
     } else {
-      arduino_manual=false;
+      arduino_manual = false;
       arduino.writeSync(OFF);
     }
-    resp.json({ status: "ok", warner: st });
+    resp.json(await getDoorState());
   } else {
     resp.json({ status: "error", message: auth })
   }
 })
 
 /**
- * Status des Garagentors abfragen (0 geschlossen,1 offen, 2 fahrend)
+ * Status des Garagentors abfragen
  */
-app.post("/rest/state", function (request, response) {
+app.post("/rest/state", async function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
-    doorState(state => {
-      if (state.status == "ok") {
-        let ans = { status: "ok" }
-        if (state.running) {
-          ans.state = 2
-        } else {
-          ans.state = state.open ? 1 : 0;
-        }
-        ans.warner = arduino.readSync() == ON ? true : false;
-        response.json(ans);
-      } else {
-        response.json({ "status": "error", message: "internal " + state.message });
-      }
-    })
+    response.json(await getDoorState());
   } else {
     response.json({ status: "error", message: auth })
   }
@@ -528,12 +521,10 @@ app.post("/rest/state", function (request, response) {
 
 /** comment out functions below in productive code */
 
-app.get("/rest/checkecho", function (req, resp) {
+app.get("/rest/checkecho", async function (req, resp) {
   console.log("check doorstate");
-  doorState(state => {
-    resp.json({ "state": state });
+  resp.json(await getDoorState());
   })
-})
 
 app.get("/rest/checkrelais", function (rea, resp) {
   console.log("check relay");

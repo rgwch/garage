@@ -7,8 +7,8 @@
 
 $(function () {
 
-  let doorstate = $('#opener').attr("data-status")
-  let arduino = false;
+  let doorstate = $('#opener').attr("data-status");
+  let arduino = $('#distance').attr("data-status");
   let timer;
   setPicture(doorstate)
   $('#abstandaus').show();

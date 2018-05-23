@@ -4,7 +4,7 @@ block content
   .container
     .row
       .col.s10.offset-s1
-        div(id="opener" data-status=state 
+        div(id="opener" data-status=doorState.state   
         style="background: #dce5f4; width:240px; border: 1px solid black; margin-top:15px")
           img(src="/garage_geschlossen.png" alt="geschlossen" style="display: none" id="garclosed")
           img(src="/garage_offen.png" alt="offen" style="display: none" id="garopen")
@@ -12,7 +12,7 @@ block content
           img(src="/garage_opening.gif" alt="running" style="display:none" id="garopening")
           img(src="/garage_closing.gif" alt="running" style="display:none" id="garclosing")
 
-        div(id="distance" style="background: #aaaaaa; width: 240px; border: 1px solid black; margin-top:15px;")  
+        div(id="distance" data-status=doorState.warner style="background: #aaaaaa; width: 240px; border: 1px solid black; margin-top:15px;")  
           img(src="/abstand0.png" alt="abstand" style="display: block" id="abstandaus")
           img(src="/abstand1.png" alt="abstand" style="display: none" id="abstandein")
 
