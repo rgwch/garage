@@ -6,25 +6,40 @@
  */
 
 $(function () {
-
-  let doorstate = $('#opener').attr("data-status");
-  let arduino = $('#distance').attr("data-status");
+  let lastState;
   let timer;
-  setPicture(doorstate)
   $('#abstandaus').show();
+
+  function setTimer(on) {
+    if (on) {
+      if (!timer) {
+        timer = setInterval(() => {
+          //console.log("ping");
+          if (!doCall("/rest/state")) {
+            askCredentials();
+          }
+        }, 2000)
+      }
+    } else {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+  }
+
+  if(!doCall("rest/state")){
+    askCredentials();
+  }
+  setTimer(true);
 
   $(window).focus(function () {
     // Alle 2 Sekunden Status prüfen, solange das Programm den Focus hat
-    timer = setInterval(() => {
-      //console.log("ping");
-      if (!doCall("/rest/state")) {
-        askCredentials();
-      }
-    }, 2000)
+    setTimer(true)
   })
 
   $(window).blur(function () {
-    clearInterval(timer);
+    setTimer(false);
   })
 
   // User hat auf den Öffner geklickt. Wenn er abgewiesen wird: Credentials eintragen.
@@ -38,7 +53,7 @@ $(function () {
 
   // User hat auf den Distanzmesser geklickt. Arduino ein oder ausschalten
   $('#distance').click(function () {
-    if (arduino == false) {
+    if (lastState.warner == false) {
       doCall("/rest/warner", "on")
     } else {
       doCall("/rest/warner", "off")
@@ -66,25 +81,24 @@ $(function () {
     $('#abstandein').hide()
   }
 
-  // Passendes Icon je nach Tor-Zustand setzen
-  function setPicture(state) {
+  // Passende Icons je nach Tor-Zustand setzen
+  function setPicture(status) {
     clearPicture()
-    switch (parseInt(state)) {
-      case 0:
-        $('#garclosed').show();
-        break;
-      case 1:
-        $('#garopen').show();
-        break;
-      case 2:
-        $('#garopening').show();
-        break;
-      case 3:
-        $('#garclosing').show();
-        break;
-      default:
-        $('#garquestion').show()
+    if (status.state == "running") {
+      $('#garopening').show();
+    } else if (status.state == "open") {
+      $('#garopen').show();
+    } else if (status.state == "closed") {
+      $('#garclosed').show();
+    } else {
+      $('#garquestion').show();
     }
+    if (status.warner) {
+      $('#abstandein').show();
+    } else {
+      $('#abstandaus').show();
+    }
+
   }
 
   // REST POST request mit Credentials absetzen
@@ -99,26 +113,19 @@ $(function () {
         success: function (res) {
           if (res.status === "ok") {
             //console.log("nach: " + res.state)
-            doorstate = res.state
-            arduino = res.warner
           } else {
-            if (res.message.startsWith("Wer")) {
-              doorstate = 4
-              arduino = false;
+            if (res.message && res.message.startsWith("Wer")) {
+              res.state = "unknown"
               localStorage.removeItem("garage_password")
             }
             alert(res.message)
           }
-          setPicture(doorstate)
-          if (arduino) {
-            $('#abstandein').show();
-          } else {
-            $('#abstandaus').show();
-          }
+          lastState = res;
+          setPicture(res);
         },
         error: function (err) {
-          doorstate = 4
-          setPicture(4)
+          lastState = { status: "error", state: "unknown", warner: false }
+          setPicture(lastState);
           alert(JSON.stringify(err))
         },
         dataType: "json"

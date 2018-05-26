@@ -15,7 +15,7 @@
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi = false;
+const realpi = true;
 //const debug = false;
 
 // Pin-Definitionen
@@ -176,7 +176,7 @@ function setLock(user) {
  keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
  @returns true, wenn der Befehl ausgeführt wurde, false, wenn das Garagentor schon fährt.
  */
-function operateGarage(done) {
+function operateGarage() {
   if (running) {
     return false
   } else {
@@ -187,7 +187,6 @@ function operateGarage(done) {
     }, time_to_push);
     setTimeout(function () {
       running = false
-      done()
     }, time_to_run)
     return true
   }
@@ -210,6 +209,7 @@ function operateGarage(done) {
 async function getDoorState() {
   if (running) {
     return {
+      status: "ok",
       state: "running",
       warner: arduino.readSync() == ON ? true : false
     }
@@ -475,11 +475,9 @@ app.get("/rest", function (req, resp) {
 app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
-    if (!operateGarage(function () {
-      getDoorState().then(state => {
-        response.json(state)
-      })
-    })) {
+    if (operateGarage()) {
+      response.json({status: "ok",state: "running", warner: arduino.readSync() == ON ? true : false})
+    }else{
       response.json({ "status": "error", message: "Das Garagentor fährt gerade. Bitte warten" })
     }
   } else {
