@@ -15,7 +15,7 @@
 "use strict"
 
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
-const realpi = true;
+const realpi = false;
 //const debug = false;
 
 // Pin-Definitionen
@@ -172,6 +172,28 @@ function setLock(user) {
 }
 
 /**
+ * Sicherstellen, dass der Abstandswarner maximal 5 Minuten lang eingeschaltet ist.
+ * Ausser, wenn er erneut eingeschaltet wird, dann Timeout neu starten.
+ */
+let time_on;
+function arduino_switch(newstate){
+  if(newstate){
+  if(arduino.readSync()==ON){
+    clearTimeout(time_on);
+  }else{
+    arduino.writeSync(ON);
+  }
+  
+  time_on=setTimeout(function(){
+    arduino.writeSync(OFF);
+  },60000)
+}else{
+  clearTimeout(time_on);
+  arduino.writeSync(OFF);
+}
+ 
+}
+/**
  "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
  keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
  @returns true, wenn der Befehl ausgeführt wurde, false, wenn das Garagentor schon fährt.
@@ -225,9 +247,10 @@ async function getDoorState() {
     let result = sorted[Math.floor(num / 2)];
     result.state = result.distance < MAX_DISTANCE ? "open" : "closed"
     if (!arduino_manual) {
-      let setarduino = result.state == "open" ? ON : OFF
-      arduino.writeSync(setarduino);
-      result.warner = setarduino == ON ? true : false
+      arduino_switch(result.state=="open");
+      //let setarduino = result.state == "open" ? ON : OFF
+      //arduino.writeSync(setarduino);
+      result.warner =  (result.state=="open")
     } else {
       result.warner = true;
     }
@@ -492,12 +515,11 @@ app.post("/rest/warner", async function (req, resp) {
   let auth = checkCredentials(req);
   if (auth == "") {
     if (req.body.extra === "on") {
-      arduino.writeSync(ON);
       arduino_manual = true;
     } else {
       arduino_manual = false;
-      arduino.writeSync(OFF);
     }
+    arduino_switch(arduino_manual);
     resp.json(await getDoorState());
   } else {
     resp.json({ status: "error", message: auth })
