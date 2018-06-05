@@ -9,8 +9,8 @@ const int red=7;
 const int yellow=8;
 const int green=9;
 
-const int RED_DISTANCE=15; //cm
-const int YELLOW_DISTANCE=50;
+const int RED_DISTANCE=30; //cm
+const int YELLOW_DISTANCE=70;
 
 const long MAX_TIME = 20000;
 
