@@ -18,7 +18,7 @@ $(function () {
           if (!doCall("/rest/state")) {
             askCredentials();
           }
-        }, 2000)
+        }, 4000)
       }
     } else {
       if (timer) {
@@ -34,7 +34,7 @@ $(function () {
   setTimer(true);
 
   $(window).focus(function () {
-    // Alle 2 Sekunden Status prüfen, solange das Programm den Focus hat
+    // Alle 4 Sekunden Status prüfen, solange das Programm den Focus hat
     setTimer(true)
   })
 
@@ -53,7 +53,9 @@ $(function () {
 
   // User hat auf den Lichtschalter geklickt. Licht ein oder ausschalten
   $('#light').click(function () {
-    doCall("/rest/light")
+    if (!doCall("/rest/light")) {
+      askCredentials();
+    }
   })
 
   function askCredentials() {
@@ -89,7 +91,7 @@ $(function () {
     } else {
       $('#garquestion').show();
     }
-    if (status.licht) {
+    if (status.light) {
       $('#licht_an').show();
     } else {
       $('#licht_aus').show();
