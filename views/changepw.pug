@@ -1,12 +1,11 @@
 extends layout.pug
 
 block content
-  .container
-    h1 Passwort ändern
-    form(action="/chpwd" method="POST")
-      input(type="text" name="username" placeholder="name")
-      input(type="text" name="oldpwd" placeholder="altes Passwort")
-      input(type="password" name="newpwd1" placeholder="neues Passwort")
-      input(type="password" name="newpwd2" placeholder="neues Passwort whd")
-      input(type="submit") Absenden
+  h1 Passwort ändern
+  form(action="/chpwd" method="POST")
+    input(type="text" name="username" placeholder="name")
+    input(type="text" name="oldpwd" placeholder="altes Passwort")
+    input(type="password" name="newpwd1" placeholder="neues Passwort")
+    input(type="password" name="newpwd2" placeholder="neues Passwort whd")
+    input(type="submit") Absenden
 

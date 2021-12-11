@@ -1,12 +1,11 @@
 extends layout.pug
 
 block content
-  .container
-    h3(style="color:blue") Willkommen, #{name}
-      p Die Garage ist <b>#{status}</b>
-      form.col.s12(method="post" action="/garage/action")
-        input(type="hidden" name="username" value=name)
-        input(type="hidden" name="password" value=pwd)
-        input(type="hidden" name="action" value=action)
-        button.col.s3.btn.waves-effect.waves-light(type="submit" name="action") #{action}
-        a.choice(href="/") Zurück
+  h3 Willkommen, #{name}
+  p Die Garage ist <b>#{status}</b>
+  form.col.s12(method="post" action="/garage/action")
+    input(type="hidden" name="username" value=name)
+    input(type="hidden" name="password" value=pwd)
+    input(type="hidden" name="action" value=action)
+    button.choice(type="submit" name="action") #{action}
+    a.choice(href="/") Zurück

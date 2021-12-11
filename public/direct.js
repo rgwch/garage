@@ -28,7 +28,7 @@ $(function () {
     }
   }
 
-  if (!doCall("rest/state")) {
+  if (!doCall("/rest/state")) {
     askCredentials();
   }
   setTimer(true);

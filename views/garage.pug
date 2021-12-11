@@ -1,23 +1,22 @@
 extends layout.pug
 
 block content
-  .container
-      h1 Garage
-      form.col.s12(method="post" action="/garage/login")
-        table
-          tr
-            td Name
-            td 
-              input(type="text" name="username" placeholder="Username" id="uname")
-          tr 
-            td Passwort 
-            td 
-              input(type="password" name="password" placeholder="Passwort" id="pwd")
-            td 
-        button.choice(type="submit" name="action") Senden 
-        hr
-        p 
-          span um das Passwort zu ändern, bitte oben Name und bisheriges Passwort eingeben und hier klicken:
-          button.choice(onClick="enterPwd()") Passwort ändern...
-        
+  h1 Garage
+  form(method="post" action="/garage/login")
+    table
+      tr
+        td Name
+        td 
+          input(type="text" name="username" placeholder="Username" id="uname")
+      tr 
+        td Passwort 
+        td 
+          input(type="password" name="password" placeholder="Passwort" id="pwd")
+        td 
+    button.choice(type="submit" name="action") Senden 
+    hr
+    p 
+      span um das Passwort zu ändern, bitte oben Name und bisheriges Passwort eingeben und hier klicken:
+      button.choice(onClick="enterPwd()") Passwort ändern...
+    
 

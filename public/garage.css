@@ -1,11 +1,14 @@
 h1{
     color:blue;
 }
+h3{
+    color: lightblue;
+}
 .container{
     padding: 5px;
     margin-left:auto;
     margin-right: auto;
-    margin-top: 5px;
+    margin-top: 15px;
 
 }
 
@@ -22,12 +25,13 @@ img{
     background: #dce5f4; 
     width:240px; 
     border: 1px solid black; 
-    margin-top:15px
 }
 
 #light{
     background: white; 
     width: 240px; 
-    border: 1px solid black; 
-    margin-top:15px;
+}
+#credentials{
+    background-color: lightcyan;
+    border: 1px solid blue;
 }

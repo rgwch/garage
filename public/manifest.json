@@ -8,12 +8,12 @@
       "sizes":"57x47"
     },
     {
-      "src":"https://xyz.ch/garage-114x114.png",
+      "src":"/garage-114x114.png",
       "type":"image/png",
       "sizes":"114x94"
     },
     {
-      "src":"https://xyz.ch/garage-144x144.png",
+      "src":"/garage-144x144.png",
       "type":"image/png",
       "sizes":"144x144"
     }
