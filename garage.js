@@ -20,7 +20,6 @@ const realpi = false;
 
 // Pin-Definitionen
 const GPIO_GARAGE = 18;   // Relais für Garagentorantrieb
-const GPIO_ARDUINO = 23;  // Relais für Strom für den Abstandswarner
 const GPIO_ECHO = 15;     // Echo vom HC-SR-04
 const GPIO_TRIGGER = 14;  // Trigger für den HC-SR-04
 
@@ -32,21 +31,25 @@ const OFF = 1;
 const MAX_DISTANCE = 100;
 
 // Dauer des simulierten Tastendrucks in Millisekunden
-const time_to_push = 900
+const time_to_push = 800
 // Dauer des Öffnungs/Schliessvorgangs des Tors in ms
 const time_to_run = 17000
 // Aussperren bei falscher Passworteingabe in ms
 const lock_time = 3000
 
+const checkLightState = "http://homepi.local:8087/get/aussenlicht_manuell"
+const setLightState = "http://homepi.local:8087/set/aussenlicht_manuell?value="
+
 const fs = require('fs')
 const ping = require('./measure');
-const https = require('https')
+const fetch = require('node-fetch')
+const https = realpi ? require('https') : require('http')
 const express = require('express')
 const nconf = require('nconf')
 const hash = require('crypto-js/sha256')
 const path = require('path')
 const bodyParser = require('body-parser');
-const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
+const salt = "um Hackern mit rainbow tables die Suppe zu versalzen"
 const favicon = require('serve-favicon');
 
 nconf.file(__dirname + '/users.json')
@@ -57,8 +60,6 @@ let disabled = false;
 let running = false
 // Hier sammeln wir schiefgegangene Login-Versuche
 const failures = {}
-// wenn true, wird der Arduino nicht automatisch ausgeschaltet.
-let arduino_manual = false;
 
 app.set('view-cache', true)
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -77,12 +78,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 
  Oder man kauft irgendwo ein kostenpflichtiges Zertifikat. Aber das scheint mir für einen Garagentorantrieb
  eigentlich zu aufwändig.
+
+ Wenn realpi==false ist, wird ein http-server ohne ssl gestartet.
  */
 
 let src = __dirname
 https.createServer({
-  key: fs.readFileSync(src + '/key.pem'),
-  cert: fs.readFileSync(src + '/cert.pem')
+  key: realpi ? fs.readFileSync(src + '/key.pem') : "",
+  cert: realpi ? fs.readFileSync(src + '/cert.pem') : ""
 }, app).listen(2017)
 
 // Auf einem echten Pi ist Gpio auf onoff (https://www.npmjs.com/package/onoff) gesetzt
@@ -91,7 +94,7 @@ https.createServer({
 let relay
 let hc_trigger
 let hc_echo
-let arduino
+let lightState
 
 if (realpi) {
   const Gpio = require('onoff').Gpio;
@@ -99,18 +102,14 @@ if (realpi) {
   relay = new Gpio(GPIO_GARAGE, 'high');
   hc_trigger = new Gpio(GPIO_TRIGGER, 'out');
   hc_echo = new Gpio(GPIO_ECHO, 'in');
-  arduino = new Gpio(GPIO_ARDUINO, 'high');
 } else {
   let Fake = require('./fakegpio')
   relay = new Fake(GPIO_GARAGE, 'out');
   hc_trigger = new Fake(GPIO_TRIGGER, 'out');
   hc_echo = new Fake(GPIO_ECHO, 'in');
-  arduino = new Fake(GPIO_ARDUINO, 'out');
-
 }
 
 relay.writeSync(OFF);
-arduino.writeSync(OFF);
 
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
@@ -171,28 +170,31 @@ function setLock(user) {
   return Math.round((Math.pow(2, lockinf.attempt) * lock_time) / 1000)
 }
 
-/**
- * Sicherstellen, dass der Abstandswarner maximal 5 Minuten lang eingeschaltet ist.
- * Ausser, wenn er erneut eingeschaltet wird, dann Timeout neu starten.
- */
-let time_on;
-function arduino_switch(newstate){
-  if(newstate){
-  if(arduino.readSync()==ON){
-    clearTimeout(time_on);
-  }else{
-    arduino.writeSync(ON);
+
+async function checkLight() {
+  const light = await fetch(checkLightState)
+  if (light.ok) {
+    const state = await light.json()
+    lightState = state.val
+    return state.val
+  } else {
+    return 3
   }
-  
-  time_on=setTimeout(function(){
-    arduino.writeSync(OFF);
-  },60000)
-}else{
-  clearTimeout(time_on);
-  arduino.writeSync(OFF);
 }
- 
+
+async function toggleLight() {
+  if (lightState == undefined) {
+    lightState = await checkLight()
+  }
+  const exec = lightState == 0 ? 1 : 0
+  const result = await fetch(setLightState + exec.toString())
+  if (result.ok) {
+    return true
+  } else {
+    throw ("could not set light")
+  }
 }
+
 /**
  "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
  keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
@@ -217,23 +219,24 @@ function operateGarage() {
 /**
  * Entfernung messen. Wir messen mehrmals
  * und nehmen dann den Median als Resultat.
- * Wenn das Tor offen ist, Arduino-Abstandswarner einschalten, sonst ausschalten.
- * @param callback: Wird mit einer state-Meldung:
+  * @param callback: Wird mit einer state-Meldung:
  * {
  *    status: "ok"|"error",
  *    distance: (distanz in cm),
  *    state: "open"|"running"|"closed" ,
- *    warner: true, wenn der Abstandswarner eingeschaltet ist
+ *    light: true, wenn das Licht eingeschaltet ist
  *    message: (Fehlermeldung bei Fehler)
  * }
  * aufgerufen
  */
 async function getDoorState() {
+  const light = await checkLight()
   if (running) {
     return {
       status: "ok",
       state: "running",
-      warner: arduino.readSync() == ON ? true : false
+      // warner: arduino.readSync() == ON ? true : false
+      light
     }
   } else {
     let measurements = []
@@ -246,14 +249,8 @@ async function getDoorState() {
     // console.log(JSON.stringify(sorted));
     let result = sorted[Math.floor(num / 2)];
     result.state = result.distance < MAX_DISTANCE ? "open" : "closed"
-    if (!arduino_manual) {
-      arduino_switch(result.state=="open");
-      //let setarduino = result.state == "open" ? ON : OFF
-      //arduino.writeSync(setarduino);
-      result.warner =  (result.state=="open")
-    } else {
-      result.warner = true;
-    }
+    result.light = light
+
     return result;
   }
 }
@@ -346,11 +343,11 @@ app.get("/adm/:master/*", function (req, resp, next) {
  */
 app.post("/garage/login", function (request, response) {
   getDoorState().then(doorstate => {
-    let action = doorstate.state=="open" ? "Schliessen" : "Öffnen";
+    let action = doorstate.state == "open" ? "Schliessen" : "Öffnen";
     response.render("confirm", {
       name: request.body.username,
       pwd: request.body.password,
-      status: doorstate.state=="open" ? "offen" : "geschlossen",
+      status: doorstate.state == "open" ? "offen" : "geschlossen",
       action: action
     });
 
@@ -499,8 +496,8 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (operateGarage()) {
-      response.json({status: "ok",state: "running", warner: arduino.readSync() == ON ? true : false})
-    }else{
+      response.json({ status: "ok", state: "running" })
+    } else {
       response.json({ "status": "error", message: "Das Garagentor fährt gerade. Bitte warten" })
     }
   } else {
@@ -509,17 +506,12 @@ app.post("/rest/operate", function (request, response) {
 })
 
 /**
- * Arduino-Abstandswarner ein oder ausschalten
+ * Licht ein oder ausschalten
  */
-app.post("/rest/warner", async function (req, resp) {
+app.post("/rest/light", async function (req, resp) {
   let auth = checkCredentials(req);
   if (auth == "") {
-    if (req.body.extra === "on") {
-      arduino_manual = true;
-    } else {
-      arduino_manual = false;
-    }
-    arduino_switch(arduino_manual);
+    await toggleLight()
     resp.json(await getDoorState());
   } else {
     resp.json({ status: "error", message: auth })
@@ -541,10 +533,11 @@ app.post("/rest/state", async function (request, response) {
 
 /** comment out functions below in productive code */
 
+
 app.get("/rest/checkecho", async function (req, resp) {
   console.log("check doorstate");
   resp.json(await getDoorState());
-  })
+})
 
 app.get("/rest/checkrelais", function (rea, resp) {
   console.log("check relay");
@@ -554,16 +547,4 @@ app.get("/rest/checkrelais", function (rea, resp) {
     resp.json("status: running");
   }
 
-});
-
-app.get("/rest/checkarduino", (req, resp) => {
-  console.log("checkarduino");
-  arduino.writeSync(ON);
-  resp.json({ status: "arduino on" });
-});
-
-app.get("/rest/stoparduino", (req, resp) => {
-  console.log("stop arduino");
-  arduino.writeSync(OFF);
-  resp.json({ status: "arduino off" });
 });

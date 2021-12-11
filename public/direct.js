@@ -1,6 +1,6 @@
 /**
  *  Garagentor-Fernbedienung mit Raspberry Pi
- *  (c) 2017-2018 by G. Weirich
+ *  (c) 2017-2021 by G. Weirich
  * 
  * Clientseitiges Skript
  */
@@ -8,7 +8,7 @@
 $(function () {
   let lastState;
   let timer;
-  $('#abstandaus').show();
+  // $('#abstandaus').show();
 
   function setTimer(on) {
     if (on) {
@@ -28,7 +28,7 @@ $(function () {
     }
   }
 
-  if(!doCall("rest/state")){
+  if (!doCall("rest/state")) {
     askCredentials();
   }
   setTimer(true);
@@ -51,13 +51,9 @@ $(function () {
     }
   })
 
-  // User hat auf den Distanzmesser geklickt. Arduino ein oder ausschalten
-  $('#distance').click(function () {
-    if (lastState.warner == false) {
-      doCall("/rest/warner", "on")
-    } else {
-      doCall("/rest/warner", "off")
-    }
+  // User hat auf den Lichtschalter geklickt. Licht ein oder ausschalten
+  $('#light').click(function () {
+    doCall("/rest/light")
   })
 
   function askCredentials() {
@@ -77,8 +73,8 @@ $(function () {
     $('#garquestion').hide()
     $('#garopening').hide()
     $('#garclosing').hide()
-    $('#abstandaus').hide()
-    $('#abstandein').hide()
+    $('#licht_aus').hide()
+    $('#licht_an').hide()
   }
 
   // Passende Icons je nach Tor-Zustand setzen
@@ -93,10 +89,10 @@ $(function () {
     } else {
       $('#garquestion').show();
     }
-    if (status.warner) {
-      $('#abstandein').show();
+    if (status.licht) {
+      $('#licht_an').show();
     } else {
-      $('#abstandaus').show();
+      $('#licht_aus').show();
     }
 
   }
