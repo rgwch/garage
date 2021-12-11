@@ -3,7 +3,7 @@
   "name": "Garage",
   "icons":[
     {
-      "src":"https://xyz.ch/garage-57x57.png",
+      "src":"/garage-57x57.png",
       "type":"image/png",
       "sizes":"57x47"
     },
@@ -18,6 +18,6 @@
       "sizes":"144x144"
     }
   ],
-  "start_url": "https://xyz.ch/rest?launcher=true",
+  "start_url": "/rest?launcher=true",
   "display":"standalone"
 }

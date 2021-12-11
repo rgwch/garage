@@ -1,0 +1,33 @@
+h1{
+    color:blue;
+}
+.container{
+    padding: 5px;
+    margin-left:auto;
+    margin-right: auto;
+    margin-top: 5px;
+
+}
+
+img{
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.choice{
+    margin:5px;
+}
+
+#opener{
+    background: #dce5f4; 
+    width:240px; 
+    border: 1px solid black; 
+    margin-top:15px
+}
+
+#light{
+    background: white; 
+    width: 240px; 
+    border: 1px solid black; 
+    margin-top:15px;
+}

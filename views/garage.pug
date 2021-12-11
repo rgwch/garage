@@ -2,20 +2,22 @@ extends layout.pug
 
 block content
   .container
-    .row
-      h1.col.s12 Garage
-
+      h1 Garage
       form.col.s12(method="post" action="/garage/login")
-        .row
-          .col.s12
-            .input-field.col.s12
-              i.material-icons.prefix account_circle
+        table
+          tr
+            td Name
+            td 
               input(type="text" name="username" placeholder="Username" id="uname")
-            .input-field.col.s8
-              i.material-icons.prefix vpn_key
+          tr 
+            td Passwort 
+            td 
               input(type="password" name="password" placeholder="Passwort" id="pwd")
-            .btn.btn-flat.col.s4(onClick="enterPwd()") ändern...
-
-            button.btn.waves-effect.waves-light.col.s12(type="submit" name="action") Senden
-              i.material-icons.right send
+            td 
+        button.choice(type="submit" name="action") Senden 
+        hr
+        p 
+          span um das Passwort zu ändern, bitte oben Name und bisheriges Passwort eingeben und hier klicken:
+          button.choice(onClick="enterPwd()") Passwort ändern...
+        
 

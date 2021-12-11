@@ -2,12 +2,11 @@ extends layout.pug
 
 block content
   .container
-    .row
-      h1.col.s12 Passwort ändern
-      form(action="/chpwd" method="POST")
-        input.col.s12.m6(type="text" name="username" placeholder="name")
-        input.col.s12.m6(type="text" name="oldpwd" placeholder="altes Passwort")
-        input.col.s12(type="password" name="newpwd1" placeholder="neues Passwort")
-        input.col.s12(type="password" name="newpwd2" placeholder="neues Passwort whd")
-        input.btn.waves-effect.waves-light.col.s12(type="submit") Absenden
+    h1 Passwort ändern
+    form(action="/chpwd" method="POST")
+      input(type="text" name="username" placeholder="name")
+      input(type="text" name="oldpwd" placeholder="altes Passwort")
+      input(type="password" name="newpwd1" placeholder="neues Passwort")
+      input(type="password" name="newpwd2" placeholder="neues Passwort whd")
+      input(type="submit") Absenden
 

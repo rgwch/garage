@@ -2,22 +2,19 @@ extends layout.pug
 
 block content
   .container
-    .row
-      .col.s10.offset-s1
-        div(id="opener" data-status=doorState.state   
-        style="background: #dce5f4; width:240px; border: 1px solid black; margin-top:15px")
-          img(src="/garage_geschlossen.png" alt="geschlossen" style="display: none" id="garclosed")
-          img(src="/garage_offen.png" alt="offen" style="display: none" id="garopen")
-          img(src="/garage_frage.png" alt="offen" style="display: block" id="garquestion")
-          img(src="/garage_opening.gif" alt="running" style="display:none" id="garopening")
-          img(src="/garage_closing.gif" alt="running" style="display:none" id="garclosing")
+    #opener(data-status=doorState.state)
+      img(src="/garage_geschlossen.png" alt="geschlossen" style="display: none" id="garclosed")
+      img(src="/garage_offen.png" alt="offen" style="display: none" id="garopen")
+      img(src="/garage_frage.png" alt="offen" style="display: block" id="garquestion")
+      img(src="/garage_opening.gif" alt="running" style="display:none" id="garopening")
+      img(src="/garage_closing.gif" alt="running" style="display:none" id="garclosing")
 
-        div(id="light" data-status=doorState.warner style="background: #aaaaaa; width: 240px; border: 1px solid black; margin-top:15px;")  
-          img(src="/lightbulb_off.png" alt="licht" style="display: block" id="licht_aus")
-          img(src="/lightbulb_on.png" alt="licht" style="display: none" id="licht_an")
+    #light(data-status=doorState.warner) 
+      img(src="/lightbulb_off.png" alt="licht" style="display: block;" id="licht_aus")
+      img(src="/lightbulb_on.png" alt="licht" style="display: none;" id="licht_an")
 
 
-        div(id="credentials" style="display:none;")
-          input(type="text" id="uname" placeholder="Name")
-          input(type="password" id="pwd" placeholder="Passwort")
-          button(id="setcred") Senden
+    #credentials(style="display:none;")
+      input.choice(type="text" id="uname" placeholder="Name")
+      input.choice(type="password" id="pwd" placeholder="Passwort")
+      button.choice(id="setcred") Senden

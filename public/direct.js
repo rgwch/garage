@@ -8,7 +8,7 @@
 $(function () {
   let lastState;
   let timer;
-  // $('#abstandaus').show();
+  $('#licht_an').hide();
 
   function setTimer(on) {
     if (on) {
