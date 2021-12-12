@@ -49,7 +49,7 @@ const nconf = require('nconf')
 const hash = require('crypto-js/sha256')
 const path = require('path')
 const bodyParser = require('body-parser')
-const salt = 'um Hackern mit rainbow tables die Suppe zu versalzen'
+const salt = "um Hackern mit 'rainbow tables' die Suppe zu versalzen"
 const favicon = require('serve-favicon')
 
 nconf.file(__dirname + '/users.json')
