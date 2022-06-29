@@ -283,6 +283,9 @@ app.get('/', function (request, response) {
   response.render('garage')
 })
 
+app.get('/ping', function (request, response) {
+  response.json({ "result": "ok" })
+})
 /**
  Check ob der Server inaktiv geschaltet ist, oder das Garagentor gerade läuft.
  Wird vor jeden POST-Request ("/*") geschaltet.
@@ -499,10 +502,10 @@ function checkCredentials(request) {
         let secs = setLock(user)
         console.log(
           new Date() +
-            ' - user failed: ' +
-            request.body.username +
-            ',' +
-            request.body.password,
+          ' - user failed: ' +
+          request.body.username +
+          ',' +
+          request.body.password,
         )
         return 'Wer bist denn du??? Sperre ' + secs + ' Sekunden.'
       }
