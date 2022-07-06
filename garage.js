@@ -37,8 +37,8 @@ const time_to_run = 17000
 // Aussperren bei falscher Passworteingabe in ms
 const lock_time = 3000
 
-const checkLightState = 'http://homepi.local:8087/get/aussenlicht_manuell'
-const setLightState = 'http://homepi.local:8087/set/aussenlicht_manuell?value='
+const checkLightState = 'http://homepi.lan:8087/get/aussenlicht_manuell'
+const setLightState = 'http://homepi.lan:8087/set/aussenlicht_manuell?value='
 
 const fs = require('fs')
 const ping = require('./measure')
