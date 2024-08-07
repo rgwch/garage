@@ -483,23 +483,6 @@ app.post("/rest/operate", function (request, response) {
   }
 })
 
-/**
- * Arduino-Abstandswarner ein oder ausschalten
- */
-app.post("/rest/warner", async function (req, resp) {
-  let auth = checkCredentials(req);
-  if (auth == "") {
-    if (req.body.extra === "on") {
-      arduino_manual = true;
-    } else {
-      arduino_manual = false;
-    }
-    arduino_switch(arduino_manual);
-    resp.json(await getDoorState());
-  } else {
-    resp.json({ status: "error", message: auth })
-  }
-})
 
 /**
  * Status des Garagentors abfragen
