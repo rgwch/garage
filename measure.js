@@ -1,6 +1,6 @@
 /**
  *  Garagentor-Fernbedienung mit Raspberry Pi
- *  (c) 2017-2018 by G. Weirich
+ *  (c) 2017-2024 by G. Weirich
  *
  *  Ultraschall-Ping Modul   
  */
@@ -31,13 +31,13 @@ const sleep = function (ms) {
 module.exports = async function ping(trigger, echo) {
   const debug = false;
   await sleep(10)
-  trigger.writeSync(0); // Startzustand standardisieren
+  trigger.digitalWrite(0); // Startzustand standardisieren
   await sleep(5);
-  trigger.writeSync(1);
+  trigger.digitalWrite(1);
   // trigger muss mindestens 15us high sein. Wir geben ihm 2ms
   await sleep(2);
   // Wenn dann Trigger auf LOW gesetzt wird, wird ein Ultrachall-Impuls abgeschickt.
-  trigger.writeSync(0);
+  trigger.digitalWrite(0);
   // Der Sensor setzt ECHO  auf HIGH, wenn der Impuls abgeht
   // Wenn allerdings die Distanz zu kurz ist, ist ECHO schon wieder LOW, bevor wir hier sind
   // wir "faken" dann eine 10cm  Distanz.
@@ -45,7 +45,7 @@ module.exports = async function ping(trigger, echo) {
   let start = us.now();
   let failure = start;
 
-  while (echo.readSync() != 1) {
+  while (echo.digitalRead() != 1) {
     start = us.now();
     if (start - failure > 10000) {
       if (debug == true) {
@@ -59,7 +59,7 @@ module.exports = async function ping(trigger, echo) {
   failure = end;
   // Wenn das Echo empfangen wird, geht ECHO auf wieder LOW. Die maximale messbare Distanz ist irgendwo bei 
   // 300cm, entsprechend 8800 us bzw. rund 18000 us für hin und zurück
-  while (echo.readSync() != 0) {
+  while (echo.digitalRead() != 0) {
     end = us.now();
     if (end - failure > 18000) {
       return ({ status: "ok", distance: 300, message: "too far" });

@@ -100,20 +100,20 @@ if (realpi) {
 
   relay = new Gpio(GPIO_GARAGE, { mode: Gpio.OUTPUT });
   relay.digitalWrite(1);
-  hc_trigger = new Gpio(GPIO_TRIGGER, 'out');
-  hc_echo = new Gpio(GPIO_ECHO, 'in');
-  arduino = new Gpio(GPIO_ARDUINO, 'high');
+  hc_trigger = new Gpio(GPIO_TRIGGER, { mode: Gpio.OUTPUT });
+  hc_echo = new Gpio(GPIO_ECHO, { mode: Gpio.INTPUT });
+  // arduino = new Gpio(GPIO_ARDUINO, { mode: Gpio.OUTPUT }');
 } else {
   let Fake = require('./fakegpio')
   relay = new Fake(GPIO_GARAGE, 'out');
   hc_trigger = new Fake(GPIO_TRIGGER, 'out');
   hc_echo = new Fake(GPIO_ECHO, 'in');
-  arduino = new Fake(GPIO_ARDUINO, 'out');
+  // arduino = new Fake(GPIO_ARDUINO, 'out');
 
 }
 
-relay.writeSync(OFF);
-arduino.writeSync(OFF);
+relay.digitalWrite(OFF);
+// arduino.writeSync(OFF);
 
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
@@ -174,28 +174,7 @@ function setLock(user) {
   return Math.round((Math.pow(2, lockinf.attempt) * lock_time) / 1000)
 }
 
-/**
- * Sicherstellen, dass der Abstandswarner maximal 5 Minuten lang eingeschaltet ist.
- * Ausser, wenn er erneut eingeschaltet wird, dann Timeout neu starten.
- */
-let time_on;
-function arduino_switch(newstate) {
-  if (newstate) {
-    if (arduino.readSync() == ON) {
-      clearTimeout(time_on);
-    } else {
-      arduino.writeSync(ON);
-    }
 
-    time_on = setTimeout(function () {
-      arduino.writeSync(OFF);
-    }, 60000)
-  } else {
-    clearTimeout(time_on);
-    arduino.writeSync(OFF);
-  }
-
-}
 /**
  "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
  keine weiteren Kommandos entgegengenommen, um dem Tor Zeit zu geben, ganz hoch oder runter zu fahren.
@@ -206,9 +185,9 @@ function operateGarage() {
     return false
   } else {
     running = true
-    relay.writeSync(ON);
+    relay.digitalWrite(ON);
     setTimeout(function () {
-      relay.writeSync(OFF)
+      relay.digitalWrite(OFF)
     }, time_to_push);
     setTimeout(function () {
       running = false
@@ -236,7 +215,7 @@ async function getDoorState() {
     return {
       status: "ok",
       state: "running",
-      warner: arduino.readSync() == ON ? true : false
+      // warner: arduino.readSync() == ON ? true : false
     }
   } else {
     let measurements = []
@@ -249,14 +228,7 @@ async function getDoorState() {
     // console.log(JSON.stringify(sorted));
     let result = sorted[Math.floor(num / 2)];
     result.state = result.distance < MAX_DISTANCE ? "open" : "closed"
-    if (!arduino_manual) {
-      arduino_switch(result.state == "open");
-      //let setarduino = result.state == "open" ? ON : OFF
-      //arduino.writeSync(setarduino);
-      result.warner = (result.state == "open")
-    } else {
-      result.warner = true;
-    }
+
     return result;
   }
 }
