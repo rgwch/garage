@@ -9,14 +9,15 @@
   "author": "Gerry Weirich",
   "license": "UNLICENSED",
   "dependencies": {
-    "body-parser": "^1.17.1",
-    "crypto-js": "^3.1.9-1",
-    "express": "^4.15.2",
-    "microseconds": "^0.1.0",
-    "nconf": "^0.8.4",
-    "node-gyp": "^3.6.2",
-    "onoff": "^3.0.2",
-    "pug": "^2.0.0-beta11",
-    "serve-favicon": "^2.4.2"
+    "body-parser": "^1.20.2",
+    "crypto-js": "^4.2.0",
+    "express": "^4.19.2",
+    "microseconds": "^0.2.0",
+    "nconf": "^0.12.1",
+    "node-gyp": "^10.2.0",
+    "onoff": "^6.0.3",
+    "pigpio": "^3.3.1",
+    "pug": "^3.0.3",
+    "serve-favicon": "^2.5.0"
   }
 }
