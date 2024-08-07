@@ -1,6 +1,6 @@
 /**
  *  Garagentor-Fernbedienung mit Raspberry Pi
- *  (c) 2017-2018 by G. Weirich
+ *  (c) 2017-2024 by G. Weirich
  * 
  * 8.4.2018: Verwende Ultraschall Sensor HC SR 04 zum feststellen, wo das Garagentor steht anstelle des 
  * Mikroschalters. Damit wird das Problem behoben, dass die Anzeige unzuverlässig ist, weil das Garagentor
@@ -9,6 +9,8 @@
  * betrachten wir es als offen.
  * 15.4.2018: Wechsel vom PiFace auf ein Standard-Relais, das mit onoff geschaltet wird. 
  * Ausserdem neue Funktion: Abstandswarner an der Stirnseite der Garage einschalten, wenn das Tor offen ist.
+ * 7.8.2024: Wechsel auf neue Hardware (Raspberry Pi Zero W2). Wechsel von onoff (funktioniert nicht mehr) auf pigpio
+ * Ausserdem: Abstandswarner wieder weg.
  */
 
 /* eslint-disable no-console*/
@@ -20,7 +22,7 @@ const realpi = true;
 
 // Pin-Definitionen
 const GPIO_GARAGE = 18;   // Relais für Garagentorantrieb
-const GPIO_ARDUINO = 23;  // Relais für Strom für den Abstandswarner
+// const GPIO_ARDUINO = 23;  // Relais für Strom für den Abstandswarner
 const GPIO_ECHO = 15;     // Echo vom HC-SR-04
 const GPIO_TRIGGER = 14;  // Trigger für den HC-SR-04
 
@@ -85,7 +87,7 @@ https.createServer({
   cert: fs.readFileSync(src + '/cert.pem')
 }, app).listen(2017)
 
-// Auf einem echten Pi ist Gpio auf onoff (https://www.npmjs.com/package/onoff) gesetzt
+// Auf einem echten Pi ist Gpio auf pigpio (https://www.npmjs.com/package/pigpio) gesetzt
 // Auf einem anderen PC wird es einfach mit leeren Funktionen simuliert.
 
 let relay
@@ -94,9 +96,10 @@ let hc_echo
 let arduino
 
 if (realpi) {
-  const Gpio = require('onoff').Gpio;
+  const Gpio = require('pigpio').Gpio;
 
-  relay = new Gpio(GPIO_GARAGE, 'high');
+  relay = new Gpio(GPIO_GARAGE, { mode: Gpio.OUTPUT });
+  relay.digitalWrite(1);
   hc_trigger = new Gpio(GPIO_TRIGGER, 'out');
   hc_echo = new Gpio(GPIO_ECHO, 'in');
   arduino = new Gpio(GPIO_ARDUINO, 'high');
@@ -176,22 +179,22 @@ function setLock(user) {
  * Ausser, wenn er erneut eingeschaltet wird, dann Timeout neu starten.
  */
 let time_on;
-function arduino_switch(newstate){
-  if(newstate){
-  if(arduino.readSync()==ON){
+function arduino_switch(newstate) {
+  if (newstate) {
+    if (arduino.readSync() == ON) {
+      clearTimeout(time_on);
+    } else {
+      arduino.writeSync(ON);
+    }
+
+    time_on = setTimeout(function () {
+      arduino.writeSync(OFF);
+    }, 60000)
+  } else {
     clearTimeout(time_on);
-  }else{
-    arduino.writeSync(ON);
-  }
-  
-  time_on=setTimeout(function(){
     arduino.writeSync(OFF);
-  },60000)
-}else{
-  clearTimeout(time_on);
-  arduino.writeSync(OFF);
-}
- 
+  }
+
 }
 /**
  "Taste drücken".  Kontakt wird für time_to_push Millisekunden geschlossen. Für time_to_run Millisekunden werden
@@ -247,10 +250,10 @@ async function getDoorState() {
     let result = sorted[Math.floor(num / 2)];
     result.state = result.distance < MAX_DISTANCE ? "open" : "closed"
     if (!arduino_manual) {
-      arduino_switch(result.state=="open");
+      arduino_switch(result.state == "open");
       //let setarduino = result.state == "open" ? ON : OFF
       //arduino.writeSync(setarduino);
-      result.warner =  (result.state=="open")
+      result.warner = (result.state == "open")
     } else {
       result.warner = true;
     }
@@ -346,11 +349,11 @@ app.get("/adm/:master/*", function (req, resp, next) {
  */
 app.post("/garage/login", function (request, response) {
   getDoorState().then(doorstate => {
-    let action = doorstate.state=="open" ? "Schliessen" : "Öffnen";
+    let action = doorstate.state == "open" ? "Schliessen" : "Öffnen";
     response.render("confirm", {
       name: request.body.username,
       pwd: request.body.password,
-      status: doorstate.state=="open" ? "offen" : "geschlossen",
+      status: doorstate.state == "open" ? "offen" : "geschlossen",
       action: action
     });
 
@@ -499,8 +502,8 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (operateGarage()) {
-      response.json({status: "ok",state: "running", warner: arduino.readSync() == ON ? true : false})
-    }else{
+      response.json({ status: "ok", state: "running", warner: arduino.readSync() == ON ? true : false })
+    } else {
       response.json({ "status": "error", message: "Das Garagentor fährt gerade. Bitte warten" })
     }
   } else {
@@ -544,7 +547,7 @@ app.post("/rest/state", async function (request, response) {
 app.get("/rest/checkecho", async function (req, resp) {
   console.log("check doorstate");
   resp.json(await getDoorState());
-  })
+})
 
 app.get("/rest/checkrelais", function (rea, resp) {
   console.log("check relay");
