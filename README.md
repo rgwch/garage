@@ -2,8 +2,7 @@
 
 Garagentoröffner per Raspberry Pi mit Relaisausgang und NodeJS-Express Server.
 Der Server lässt sich per WebApp bedienen. Der Zustand des Tors (offen/zu) wird mit
-einem Ultraschall-Sensor bestimmt. Wenn das Tor offen ist, wird ein weiterer Entfernungsmesser
-eingeschaltet, der als Abstandswarner an der Stirnseite dient.
+einem Ultraschall-Sensor bestimmt. 
 
 ## Hardware
 
@@ -19,6 +18,11 @@ eingeschaltet, der als Abstandswarner an der Stirnseite dient.
 3D-Drucker für die Gehäuse.
 
 ## Software
+Raspbian installieren
+
+
+Je nach Pi Version (Pi Zero, Pi Zero W) muss node für armv6 installiert werden. Das geht nur mit älteren Versionen.
+Neuere (Pi Zero W2) sind armv7 kompatibel
 
 NodeJS 10.x, z.B. so:
 
@@ -33,3 +37,25 @@ NodeJS 10.x, z.B. so:
       sudo ln -s /home/pi/apps/node10/bin/npm /usr/bin/npm
       echo export PATH=$PATH:/home/pi/apps/node10/bin >>../.profile
 
+Node 10 (genauer gesagt node-gyp) braucht Python 2. Raspbian kommt aber mit Python 3.
+Also Python 2 installieren, wird nur zum kompilieren gebraucht.
+
+```
+wget https://www.python.org/ftp/python/2.7.9/Python-2.7.9.tgz
+sudo tar xzf Python-2.7.9.tgz
+cd Python-2.7.9
+sudo ./configure --enable-optimizations
+sudo make altinstall
+python2.7 -V
+~ Python 2.7.9
+sudo ln -sfn '/usr/local/bin/python2.7' '/usr/bin/python2'
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python2 1
+
+sudo update-alternatives --config python
+* 0            /usr/bin/python3   2         auto mode
+1            /usr/bin/python2   1         manual mode
+2            /usr/bin/python3   2         manual mode
+
+Press <enter> to keep the current choice[*], or type selection number:
+```
+Umschalten dann jeweils mit sudo update-alternatives --config python
