@@ -1,6 +1,6 @@
 /**
  *  Garagentor-Fernbedienung mit Raspberry Pi
- *  (c) 2017-2018 by G. Weirich
+ *  (c) 2017-2024 by G. Weirich
  * 
  * Passwortänderung für User
  */

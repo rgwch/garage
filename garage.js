@@ -60,7 +60,7 @@ let running = false
 // Hier sammeln wir schiefgegangene Login-Versuche
 const failures = {}
 // wenn true, wird der Arduino nicht automatisch ausgeschaltet.
-let arduino_manual = false;
+// let arduino_manual = false;
 
 app.set('view-cache', true)
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -93,7 +93,7 @@ https.createServer({
 let relay
 let hc_trigger
 let hc_echo
-let arduino
+// let arduino
 
 if (realpi) {
   const Gpio = require('pigpio').Gpio;
@@ -474,7 +474,7 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (operateGarage()) {
-      response.json({ status: "ok", state: "running", warner: arduino.readSync() == ON ? true : false })
+      response.json({ status: "ok", state: "running", warner: false })
     } else {
       response.json({ "status": "error", message: "Das Garagentor fährt gerade. Bitte warten" })
     }
@@ -514,14 +514,3 @@ app.get("/rest/checkrelais", function (rea, resp) {
 
 });
 
-app.get("/rest/checkarduino", (req, resp) => {
-  console.log("checkarduino");
-  arduino.writeSync(ON);
-  resp.json({ status: "arduino on" });
-});
-
-app.get("/rest/stoparduino", (req, resp) => {
-  console.log("stop arduino");
-  arduino.writeSync(OFF);
-  resp.json({ status: "arduino off" });
-});
