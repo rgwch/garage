@@ -16,6 +16,7 @@
 /* eslint-disable no-console*/
 "use strict"
 
+const VERSION = "3.0.0 pigpio"
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = true;
 //const debug = false;
@@ -246,6 +247,9 @@ app.get("/", function (request, response) {
   response.render("garage")
 })
 
+app.get('/ping', function (request, response) {
+  response.json({ "result": "ok", "version:": VERSION })
+})
 /**
  Check ob der Server inaktiv geschaltet ist, oder das Garagentor gerade läuft.
  Wird vor jeden POST-Request ("/*") geschaltet.
@@ -262,7 +266,7 @@ app.post("/*", function (req, resp, next) {
 
 
 /**
- * Zugriffstest; wird vor alle https://server:2015/garage/... POST requests geschaltet
+ * Zugriffstest; wird vor alle https://server:2017/garage/... POST requests geschaltet
  * Wenn ein User gesperrt ist, dann prüfe, ob die Sperre abgelaufen ist. Wenn nein, abweisen
  * Sonst:
  * Wenn das Passwort korrekt ist, allfällige Sperren löschen
@@ -289,7 +293,7 @@ app.post("/garage/*", function (request, response, next) {
 })
 
 /**
- * Zugriffstest für Admin-Funktionen. Wird vor alle https://server:2015/adm/... GET requests geschaltet.
+ * Zugriffstest für Admin-Funktionen. Wird vor alle https://server:2017/adm/... GET requests geschaltet.
  * Gemeinsame Syntax: /adm/masterpassword/funktion/parameter.
  * Bei falschem Masterpasswort: Sperre setzen bzw. verlängern.
  */
