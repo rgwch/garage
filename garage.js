@@ -470,6 +470,12 @@ app.get("/rest", function (req, resp) {
   })
 })
 
+app.get("/rest2", function (req, resp) {
+  getDoorState().then(doorState => {
+    resp.render("direct2", { doorState: doorState });
+  })
+})
+
 
 /**
  * Garagentor fahren
