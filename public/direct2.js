@@ -52,6 +52,8 @@ function askCredentials() {
             opener.style.display = "block";
             setTimer(true);
         }
+        waiting = false;
+        doCall("/rest/state");
     }
 }
 
