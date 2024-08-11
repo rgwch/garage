@@ -40,7 +40,7 @@ const MAX_DISTANCE = 100;
 // Dauer des simulierten Tastendrucks in Millisekunden
 const time_to_push = 900
 // Dauer des Öffnungs/Schliessvorgangs des Tors in ms
-const time_to_run = 17000
+const time_to_run = 10000
 // Aussperren bei falscher Passworteingabe in ms
 const lock_time = 3000
 
@@ -487,7 +487,7 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (operateGarage()) {
-      response.json({ status: "ok", state: "running"})
+      response.json({ status: "ok", state: "running" })
     } else {
       response.json({ "status": "error", message: "Das Garagentor fährt gerade. Bitte warten" })
     }

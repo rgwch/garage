@@ -18,6 +18,7 @@ const garclosing = document.getElementById("garclosing");
 
 setPicture({ state: "unknown" });
 doCall("/rest/state");
+setTimer(true);
 
 window.onfocus = () => {
     if (!waiting) {
@@ -29,6 +30,7 @@ window.onblur = () => {
 }
 
 opener.onclick = async () => {
+    waiting = false;
     await doCall("/rest/operate")
 }
 
@@ -49,7 +51,6 @@ function askCredentials() {
             cred.style.display = "none";
             opener.style.display = "block";
             setTimer(true);
-            waiting = false
         }
     }
 }
