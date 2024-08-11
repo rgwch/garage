@@ -16,7 +16,7 @@
 /* eslint-disable no-console*/
 "use strict"
 
-const VERSION = "3.0.0 pigpio"
+const VERSION = "3.0.5 pigpio"
 // Damit wir das Programm auf einem normalen PC ohne GPIO testen können. Wenn es auf dem echten Pi läuft, true setzen
 const realpi = false;
 //const debug = false;
@@ -26,7 +26,6 @@ const setLightState = 'http://homepi.lan:8087/set/aussenlicht_manuell?value='
 
 // Pin-Definitionen
 const GPIO_GARAGE = 18;   // Relais für Garagentorantrieb
-// const GPIO_ARDUINO = 23;  // Relais für Strom für den Abstandswarner
 const GPIO_ECHO = 15;     // Echo vom HC-SR-04
 const GPIO_TRIGGER = 14;  // Trigger für den HC-SR-04
 
@@ -63,8 +62,6 @@ let disabled = false;
 let running = false
 // Hier sammeln wir schiefgegangene Login-Versuche
 const failures = {}
-// wenn true, wird der Arduino nicht automatisch ausgeschaltet.
-// let arduino_manual = false;
 
 app.set('view-cache', true)
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -97,7 +94,6 @@ https.createServer({
 let relay
 let hc_trigger
 let hc_echo
-// let arduino
 
 if (realpi) {
   const Gpio = require('pigpio').Gpio;
@@ -106,18 +102,15 @@ if (realpi) {
   relay.digitalWrite(1);
   hc_trigger = new Gpio(GPIO_TRIGGER, { mode: Gpio.OUTPUT });
   hc_echo = new Gpio(GPIO_ECHO, { mode: Gpio.INTPUT });
-  // arduino = new Gpio(GPIO_ARDUINO, { mode: Gpio.OUTPUT }');
 } else {
   let Fake = require('./fakegpio')
   relay = new Fake(GPIO_GARAGE, 'out');
   hc_trigger = new Fake(GPIO_TRIGGER, 'out');
   hc_echo = new Fake(GPIO_ECHO, 'in');
-  // arduino = new Fake(GPIO_ARDUINO, 'out');
 
 }
 
 relay.digitalWrite(OFF);
-// arduino.writeSync(OFF);
 
 /**
  * Expressjs sagen, dass die Views im Verzeichnis "views" zu finden sind, und dass
@@ -204,12 +197,11 @@ function operateGarage() {
  * Entfernung messen. Wir messen mehrmals
  * und nehmen dann den Median als Resultat.
  * Wenn das Tor offen ist, Arduino-Abstandswarner einschalten, sonst ausschalten.
- * @param callback: Wird mit einer state-Meldung:
+ * @return state:
  * {
  *    status: "ok"|"error",
  *    distance: (distanz in cm),
  *    state: "open"|"running"|"closed" ,
- *    warner: true, wenn der Abstandswarner eingeschaltet ist
  *    message: (Fehlermeldung bei Fehler)
  * }
  * aufgerufen
@@ -219,7 +211,6 @@ async function getDoorState() {
     return {
       status: "ok",
       state: "running",
-      // warner: arduino.readSync() == ON ? true : false
     }
   } else {
     let measurements = []
@@ -243,13 +234,16 @@ async function getDoorState() {
  *********************************/
 
 /**
- * Endpoint für https://adresse:2015/
+ * Endpoint für https://adresse:2017/
  *  Login-Screen anzeigen
  */
 app.get("/", function (request, response) {
   response.render("garage")
 })
 
+/**
+ * Endpoint für https://adresse:2017/ping: Check ob der Server ansprechbar ist
+ */
 app.get('/ping', function (request, response) {
   response.json({ "result": "ok", "version:": VERSION })
 })
@@ -299,6 +293,7 @@ app.post("/garage/*", function (request, response, next) {
  * Zugriffstest für Admin-Funktionen. Wird vor alle https://server:2017/adm/... GET requests geschaltet.
  * Gemeinsame Syntax: /adm/masterpassword/funktion/parameter.
  * Bei falschem Masterpasswort: Sperre setzen bzw. verlängern.
+ * Falls noch kein Masterpasswort existiert, wird es gesetzt.
  */
 app.get("/adm/:master/*", function (req, resp, next) {
   if (isLocked(failures.admin)) {
