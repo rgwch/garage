@@ -4,44 +4,40 @@
  * 
  * Clientseitiges Skript für moderne Browser
  */
+"use strict";
 
-let opener;
-let credentials;
-let garopen;
-let garclosed;
-let garquestion;
-let garopening;
-let garclosing;
+let timer;
+let waiting = false;
+const credentials = document.getElementById("credentials");
+const opener = document.getElementById("opener");
+const garopen = document.getElementById("garopen");
+const garclosed = document.getElementById("garclosed");
+const garquestion = document.getElementById("garquestion");
+const garopening = document.getElementById("garopening");
+const garclosing = document.getElementById("garclosing");
 
+setPicture({ state: "unknown" });
+doCall("rest/state");
 
-document.onload = async () => {
-    if (!await doCall("rest/state")) {
-        askCredentials();
-    }
-    window.onfocus = () => {
+window.onfocus = () => {
+    if (!waiting) {
         setTimer(true);
     }
-    window.onblur = () => {
-        setTimer(false);
-    }
-    opener = document.getElementById("opener");
-    garopen = document.getElementById("garopen");
-    garclosed = document.getElementById("garclosed");
-    garquestion = document.getElementById("garquestion");
-    garopening = document.getElementById("garopening");
-    garclosing = document.getElementById("garclosing");
+}
+window.onblur = () => {
+    setTimer(false);
+}
 
-    opener.onclick = async () => {
-        if (!await doCall("/rest/operate")) {
-            askCredentials();
-        }
-    }
+opener.onclick = async () => {
+    await doCall("/rest/operate")
 }
 
 
+
 function askCredentials() {
+    waiting = true
+    setTimer(false);
     opener.style.display = "none";
-    credentials = document.getElementById("credentials");
     credentials.style.display = "block";
     const setcred = document.getElementById("setcred");
     setcred.onclick = () => {
@@ -52,6 +48,8 @@ function askCredentials() {
             localStorage.setItem("garage_password", pwd)
             credentials.style.display = "none";
             opener.style.display = "block";
+            setTimer(true);
+            waiting = false
         }
     }
 }
@@ -85,9 +83,8 @@ function setTimer(on) {
     if (on) {
         if (!timer) {
             timer = setInterval(() => {
-                //console.log("ping");
-                if (!doCall("/rest/state")) {
-                    askCredentials();
+                if (!waiting) {
+                    doCall("/rest/state")
                 }
             }, 2000)
         }
@@ -99,51 +96,35 @@ function setTimer(on) {
     }
 }
 
-async function doCall(addr, extra) {
+async function doCall(addr) {
     let user = localStorage.getItem("garage_username")
     let pwd = localStorage.getItem("garage_password")
     if (user && pwd) {
         const result = await fetch(addr, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "username": user, "password": pwd, "extra": extra })
+            body: JSON.stringify({ "u": user, "p": pwd })
         });
-    }
-    if (result.ok) {
-        const res = await result.json();
-        if (res.status === "ok") {
-            setPicture(res);
-        } else {
-            if (res.message && res.message.startsWith("Wer")) {
-                res.state = "unknown";
-                localStorage.removeItem("garage_password");
-            }
-            alert(res.message);
-        }
-    } else {
-        alert(result.statusText);
-    }
-    /*
-    let xhr = new XMLHttpRequest();
-    xhr.open("POST", addr, true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onreadystatechange = () => {
-        if (xhr.readyState == 4 && xhr.status == 200) {
-            let res = JSON.parse(xhr.responseText);
+
+        if (result.ok) {
+            const res = await result.json();
             if (res.status === "ok") {
                 setPicture(res);
             } else {
                 if (res.message && res.message.startsWith("Wer")) {
                     res.state = "unknown";
                     localStorage.removeItem("garage_password");
+                    askCredentials();
+                } else {
+                    alert(res.message);
                 }
-                alert(res.message);
             }
+
+        } else {
+            alert(result.statusText);
         }
+        return true;
+    } else {
+        askCredentials();
     }
-    xhr.send(JSON.stringify({ "username": user, "password": pwd, "extra": extra }));
-    return true;
-    */
-}
-return false;
 }

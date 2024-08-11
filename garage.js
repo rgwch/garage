@@ -21,6 +21,9 @@ const VERSION = "3.0.0 pigpio"
 const realpi = false;
 //const debug = false;
 
+const checkLightState = 'http://homepi.lan:8087/get/aussenlicht_manuell'
+const setLightState = 'http://homepi.lan:8087/set/aussenlicht_manuell?value='
+
 // Pin-Definitionen
 const GPIO_GARAGE = 18;   // Relais für Garagentorantrieb
 // const GPIO_ARDUINO = 23;  // Relais für Strom für den Abstandswarner
@@ -438,13 +441,13 @@ app.get("/adm/:master/log", function (req, resp) {
  * @returns "" wenn alls iO ist, sonst eine Fehlermeldung
  */
 function checkCredentials(request) {
-  if (request.body.username) {
-    let user = request.body.username.toLocaleLowerCase()
+  if (request.body.u) {
+    let user = request.body.u.toLocaleLowerCase()
     if (isLocked(failures[user])) {
-      console.log(new Date() + " locked user tries to login " + request.body.username);
+      console.log(new Date() + " locked user tries to login " + request.body.u);
       return "Sperre wegen falscher Passworteingabe. Bitte etwas später nochmal versuchen."
     } else {
-      let password = encode(request.body.password)
+      let password = encode(request.body.p)
       let valid = nconf.get(user)
       if (valid && valid === password) {
         // console.log(new Date() + "- userok: " + request.body.username);
@@ -452,7 +455,7 @@ function checkCredentials(request) {
         return ""
       } else {
         let secs = setLock(user)
-        console.log(new Date() + " - user failed: " + request.body.username + "," + request.body.password);
+        console.log(new Date() + " - user failed: " + request.body.u + "," + request.body.p);
         return "Wer bist denn du??? Sperre " + secs + " Sekunden."
       }
     }
@@ -484,7 +487,7 @@ app.post("/rest/operate", function (request, response) {
   let auth = checkCredentials(request)
   if (auth == "") {
     if (operateGarage()) {
-      response.json({ status: "ok", state: "running", warner: false })
+      response.json({ status: "ok", state: "running"})
     } else {
       response.json({ "status": "error", message: "Das Garagentor fährt gerade. Bitte warten" })
     }
