@@ -467,13 +467,13 @@ function checkCredentials(request) {
 /**
  * Web-App-Script und View holen
  */
-app.get("/rest", function (req, resp) {
+app.get("/restold", function (req, resp) {
   getDoorState().then(doorState => {
     resp.render("direct", { doorState: doorState });
   })
 })
 
-app.get("/rest2", function (req, resp) {
+app.get("/rest", function (req, resp) {
   getDoorState().then(doorState => {
     resp.render("direct2", { doorState: doorState });
   })

@@ -6,9 +6,9 @@
  */
 "use strict";
 
-let timer;
+let t;
 let waiting = false;
-const credentials = document.getElementById("credentials");
+const cred = document.getElementById("credentials");
 const opener = document.getElementById("opener");
 const garopen = document.getElementById("garopen");
 const garclosed = document.getElementById("garclosed");
@@ -38,15 +38,15 @@ function askCredentials() {
     waiting = true
     setTimer(false);
     opener.style.display = "none";
-    credentials.style.display = "block";
+    cred.style.display = "block";
     const setcred = document.getElementById("setcred");
     setcred.onclick = () => {
-        let user = document.getElementById("uname").value;
-        let pwd = document.getElementById("pwd").value;
-        if (user && pwd) {
-            localStorage.setItem("garage_username", user)
-            localStorage.setItem("garage_password", pwd)
-            credentials.style.display = "none";
+        let u = document.getElementById("uname").value;
+        let p = document.getElementById("pwd").value;
+        if (u && p) {
+            localStorage.setItem("garage_username", u)
+            localStorage.setItem("garage_password", p)
+            cred.style.display = "none";
             opener.style.display = "block";
             setTimer(true);
             waiting = false
@@ -81,29 +81,29 @@ function setPicture(status) {
 }
 function setTimer(on) {
     if (on) {
-        if (!timer) {
-            timer = setInterval(() => {
+        if (!t) {
+            t = setInterval(() => {
                 if (!waiting) {
                     doCall("/rest/state")
                 }
             }, 2000)
         }
     } else {
-        if (timer) {
-            clearInterval(timer);
-            timer = null;
+        if (t) {
+            clearInterval(t);
+            t = null;
         }
     }
 }
 
 async function doCall(addr) {
-    let user = localStorage.getItem("garage_username")
-    let pwd = localStorage.getItem("garage_password")
-    if (user && pwd) {
+    const u = localStorage.getItem("garage_username")
+    const p = localStorage.getItem("garage_password")
+    if (u && p) {
         const result = await fetch(addr, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "u": user, "p": pwd })
+            body: JSON.stringify({ u, p })
         });
 
         if (result.ok) {
