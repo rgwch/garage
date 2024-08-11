@@ -17,7 +17,7 @@ const garopening = document.getElementById("garopening");
 const garclosing = document.getElementById("garclosing");
 
 setPicture({ state: "unknown" });
-doCall("rest/state");
+doCall("/rest/state");
 
 window.onfocus = () => {
     if (!waiting) {
